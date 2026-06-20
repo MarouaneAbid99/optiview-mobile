@@ -1,0 +1,70 @@
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { ActivityIndicator, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../context/AuthContext';
+import { colors } from '../theme';
+
+import { LoginScreen } from '../screens/LoginScreen';
+import { SignupScreen } from '../screens/SignupScreen';
+import { ClientsScreen } from '../screens/ClientsScreen';
+import { EyewearScreen } from '../screens/EyewearScreen';
+import { LensesScreen } from '../screens/LensesScreen';
+import { AtelierScreen } from '../screens/AtelierScreen';
+import { OrdersScreen } from '../screens/OrdersScreen';
+import { DeskScreen } from '../screens/DeskScreen';
+
+const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
+
+const ICONS = {
+  Desk: 'grid-outline',
+  Clients: 'people-outline',
+  Eyewear: 'glasses-outline',
+  Lenses: 'eye-outline',
+  Atelier: 'construct-outline',
+  Orders: 'receipt-outline',
+};
+
+function MainTabs() {
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerStyle: { backgroundColor: colors.primary },
+        headerTintColor: '#fff',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.muted,
+        tabBarIcon: ({ color, size }) => <Ionicons name={ICONS[route.name]} size={size} color={color} />,
+      })}
+    >
+      <Tab.Screen name="Desk" component={DeskScreen} />
+      <Tab.Screen name="Clients" component={ClientsScreen} />
+      <Tab.Screen name="Eyewear" component={EyewearScreen} />
+      <Tab.Screen name="Lenses" component={LensesScreen} />
+      <Tab.Screen name="Atelier" component={AtelierScreen} />
+      <Tab.Screen name="Orders" component={OrdersScreen} />
+    </Tab.Navigator>
+  );
+}
+
+export function RootNavigator() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator size="large" color={colors.primary} /></View>;
+  }
+
+  return (
+    <NavigationContainer>
+      {user ? (
+        <MainTabs />
+      ) : (
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Signup" component={SignupScreen} />
+        </Stack.Navigator>
+      )}
+    </NavigationContainer>
+  );
+}
