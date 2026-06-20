@@ -1,21 +1,41 @@
 {
   "expo": {
-    "name": "optiview-mobile",
+    "name": "OPTIVIEW",
     "slug": "optiview-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "scheme": "optiview",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1e40af"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "ma.optiview.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "OPTIVIEW utilise la caméra pour ajouter des photos de produits et de boutique.",
+        "NSPhotoLibraryUsageDescription": "OPTIVIEW accède à vos photos pour les images de produits."
+      }
     },
     "android": {
+      "package": "ma.optiview.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#1e40af",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+      },
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -23,6 +43,12 @@
     "plugins": [
       "expo-secure-store",
       "expo-font"
-    ]
+    ],
+    "owner": "marouane_abid_9",
+    "extra": {
+      "eas": {
+        "projectId": "c93644a6-10e5-4f11-be86-43200a744611"
+      }
+    }
   }
 }
