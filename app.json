@@ -42,7 +42,17 @@
     },
     "plugins": [
       "expo-secure-store",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 24,
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35
+          }
+        }
+      ]
     ],
     "owner": "marouane_abid_9",
     "extra": {
