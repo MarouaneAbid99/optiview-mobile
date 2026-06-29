@@ -9,7 +9,8 @@ import { colors } from '../theme';
 import { LoginScreen } from '../screens/LoginScreen';
 import { SignupScreen } from '../screens/SignupScreen';
 import { PanoramaScreen } from '../screens/PanoramaScreen';
-import { ClientsScreen } from '../screens/ClientsScreen';
+import { ClientsListScreen } from '../screens/clients/ClientsListScreen';
+import { ClientDetailScreen } from '../screens/clients/ClientDetailScreen';
 import { EyewearScreen } from '../screens/EyewearScreen';
 import { LensesScreen } from '../screens/LensesScreen';
 import { AtelierScreen } from '../screens/AtelierScreen';
@@ -18,6 +19,16 @@ import { DeskScreen } from '../screens/DeskScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+const ClientsStackNav = createNativeStackNavigator();
+
+function ClientsStack() {
+  return (
+    <ClientsStackNav.Navigator screenOptions={{ headerStyle: { backgroundColor: colors.primary }, headerTintColor: '#fff' }}>
+      <ClientsStackNav.Screen name="ClientsList" component={ClientsListScreen} options={{ title: 'Clients' }} />
+      <ClientsStackNav.Screen name="ClientDetail" component={ClientDetailScreen} options={{ title: 'Fiche client' }} />
+    </ClientsStackNav.Navigator>
+  );
+}
 
 const ICONS = {
   Boutique: 'home-outline',
@@ -43,7 +54,7 @@ function MainTabs() {
     >
       <Tab.Screen name="Boutique" component={PanoramaScreen} options={{ headerShown: false }} />
       <Tab.Screen name="Desk" component={DeskScreen} />
-      <Tab.Screen name="Clients" component={ClientsScreen} />
+      <Tab.Screen name="Clients" component={ClientsStack} options={{ headerShown: false }} />
       <Tab.Screen name="Eyewear" component={EyewearScreen} />
       <Tab.Screen name="Lenses" component={LensesScreen} />
       <Tab.Screen name="Atelier" component={AtelierScreen} />
