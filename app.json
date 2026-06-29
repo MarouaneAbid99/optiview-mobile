@@ -9,8 +9,8 @@
     "scheme": "optiview",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
+      "image": "./assets/splash.png",
+      "resizeMode": "cover",
       "backgroundColor": "#1e40af"
     },
     "assetBundlePatterns": [
@@ -27,10 +27,8 @@
     "android": {
       "package": "ma.optiview.app",
       "adaptiveIcon": {
-        "backgroundColor": "#1e40af",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1e40af"
       },
       "permissions": [
         "CAMERA",
