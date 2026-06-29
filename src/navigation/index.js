@@ -8,6 +8,7 @@ import { colors } from '../theme';
 
 import { LoginScreen } from '../screens/LoginScreen';
 import { SignupScreen } from '../screens/SignupScreen';
+import { PanoramaScreen } from '../screens/PanoramaScreen';
 import { ClientsScreen } from '../screens/ClientsScreen';
 import { EyewearScreen } from '../screens/EyewearScreen';
 import { LensesScreen } from '../screens/LensesScreen';
@@ -19,6 +20,7 @@ const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 const ICONS = {
+  Boutique: 'home-outline',
   Desk: 'grid-outline',
   Clients: 'people-outline',
   Eyewear: 'glasses-outline',
@@ -35,9 +37,11 @@ function MainTabs() {
         headerTintColor: '#fff',
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.muted,
+        tabBarLabelStyle: { fontSize: 10 },
         tabBarIcon: ({ color, size }) => <Ionicons name={ICONS[route.name]} size={size} color={color} />,
       })}
     >
+      <Tab.Screen name="Boutique" component={PanoramaScreen} options={{ headerShown: false }} />
       <Tab.Screen name="Desk" component={DeskScreen} />
       <Tab.Screen name="Clients" component={ClientsScreen} />
       <Tab.Screen name="Eyewear" component={EyewearScreen} />

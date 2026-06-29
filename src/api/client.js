@@ -44,6 +44,11 @@ export const authAPI = {
   me: () => client.get('/auth/me'),
 };
 
+export const panoramaAPI = {
+  getStores: () => client.get('/panorama/stores'),
+  getStore: (id) => client.get(`/panorama/stores/${id}`),
+};
+
 export const clientsAPI = {
   getClients: (params) => client.get('/clients', { params }),
   getClientById: (id) => client.get(`/clients/${id}`),
