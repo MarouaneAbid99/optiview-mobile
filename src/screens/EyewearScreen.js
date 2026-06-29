@@ -4,6 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { eyewearAPI } from '../api/client';
 import { SearchBar, Fab, EmptyState, Loader, Field, PrimaryButton } from '../components/ui';
+import { BarcodeScanner } from '../components/BarcodeScanner';
 import { colors } from '../theme';
 
 export function EyewearScreen() {
@@ -11,8 +12,10 @@ export function EyewearScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
-  const [editing, setEditing] = useState(null); // frame object or {} for new
+  const [editing, setEditing] = useState(null);
   const [modal, setModal] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scanPrefill, setScanPrefill] = useState(null);
 
   const load = useCallback(async () => {
     try { const res = await eyewearAPI.getFrames(); setFrames(res.data || []); }
@@ -26,13 +29,27 @@ export function EyewearScreen() {
     try { await eyewearAPI.updateStock(frame.id, next); } catch { load(); }
   };
 
+  const onScan = (code) => {
+    setScannerOpen(false);
+    const found = frames.find((f) => f.barcode === code);
+    if (found) { setEditing(found); setScanPrefill(null); setModal(true); }
+    else { setEditing({}); setScanPrefill(code); setModal(true); }
+  };
+
   const filtered = frames.filter((f) => `${f.brand} ${f.model}`.toLowerCase().includes(search.toLowerCase()));
 
   if (loading) return <Loader />;
 
   return (
     <View style={styles.container}>
-      <SearchBar value={search} onChangeText={setSearch} placeholder="Marque ou modèle..." />
+      <View style={styles.searchRow}>
+        <View style={{ flex: 1 }}>
+          <SearchBar value={search} onChangeText={setSearch} placeholder="Marque ou modèle..." />
+        </View>
+        <TouchableOpacity style={styles.scanBtn} onPress={() => setScannerOpen(true)}>
+          <Ionicons name="barcode-outline" size={24} color={colors.primary} />
+        </TouchableOpacity>
+      </View>
       <FlatList
         data={filtered}
         keyExtractor={(i) => i.id}
@@ -40,10 +57,11 @@ export function EyewearScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
         ListEmptyComponent={<EmptyState icon="glasses-outline" text="Aucune monture" />}
         renderItem={({ item }) => (
-          <TouchableOpacity style={styles.card} onPress={() => { setEditing(item); setModal(true); }}>
+          <TouchableOpacity style={styles.card} onPress={() => { setEditing(item); setScanPrefill(null); setModal(true); }}>
             <View style={{ flex: 1 }}>
               <Text style={styles.name}>{item.brand} {item.model}</Text>
               <Text style={styles.sub}>{item.category}{item.color ? ` · ${item.color}` : ''} · {item.price} MAD</Text>
+              {!!item.barcode && <Text style={styles.barcode}>{item.barcode}</Text>}
             </View>
             <View style={styles.stockBox}>
               <TouchableOpacity onPress={() => changeStock(item, -1)} style={styles.stockBtn}><Ionicons name="remove" size={16} color={colors.text} /></TouchableOpacity>
@@ -53,25 +71,36 @@ export function EyewearScreen() {
           </TouchableOpacity>
         )}
       />
-      <Fab onPress={() => { setEditing({}); setModal(true); }} />
-      <FrameModal visible={modal} frame={editing?.id ? editing : null} onClose={() => setModal(false)} onSaved={() => { setModal(false); load(); }} />
+      <Fab onPress={() => { setEditing({}); setScanPrefill(null); setModal(true); }} />
+      <FrameModal
+        visible={modal}
+        frame={editing?.id ? editing : null}
+        prefillBarcode={scanPrefill}
+        onClose={() => { setModal(false); setScanPrefill(null); }}
+        onSaved={() => { setModal(false); setScanPrefill(null); load(); }}
+      />
+      <BarcodeScanner visible={scannerOpen} onClose={() => setScannerOpen(false)} onScanned={onScan} />
     </View>
   );
 }
 
-function FrameModal({ visible, frame, onClose, onSaved }) {
+function FrameModal({ visible, frame, prefillBarcode, onClose, onSaved }) {
   const isEdit = !!frame;
-  const [form, setForm] = useState({ brand: '', model: '', category: '', color: '', price: '', stock: '' });
+  const [form, setForm] = useState({ brand: '', model: '', category: '', color: '', price: '', stock: '', barcode: '' });
   const [saving, setSaving] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
-  // Re-init the form whenever the modal opens (with or without a frame)
   useEffect(() => {
     if (!visible) return;
-    if (frame) setForm({ brand: frame.brand || '', model: frame.model || '', category: frame.category || '', color: frame.color || '', price: String(frame.price ?? ''), stock: String(frame.stock ?? '') });
-    else setForm({ brand: '', model: '', category: '', color: '', price: '', stock: '' });
-  }, [visible, frame]);
+    if (frame) {
+      setForm({ brand: frame.brand || '', model: frame.model || '', category: frame.category || '', color: frame.color || '', price: String(frame.price ?? ''), stock: String(frame.stock ?? ''), barcode: frame.barcode || '' });
+    } else {
+      setForm({ brand: '', model: '', category: '', color: '', price: '', stock: '', barcode: prefillBarcode || '' });
+    }
+  }, [visible, frame, prefillBarcode]);
 
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
+
   const save = async () => {
     if (!form.brand.trim()) { Alert.alert('Champ requis', 'La marque est requise'); return; }
     if (!form.model.trim()) { Alert.alert('Champ requis', 'Le modèle est requis'); return; }
@@ -80,6 +109,7 @@ function FrameModal({ visible, frame, onClose, onSaved }) {
     const payload = {
       brand: form.brand, model: form.model, category: form.category, color: form.color,
       price: parseFloat(form.price) || 0, stock: parseInt(form.stock, 10) || 0,
+      barcode: form.barcode || undefined,
     };
     try {
       if (isEdit) await eyewearAPI.updateFrame(frame.id, payload);
@@ -88,6 +118,7 @@ function FrameModal({ visible, frame, onClose, onSaved }) {
     } catch (e) { Alert.alert('Erreur', e.response?.data?.message || 'Erreur'); }
     finally { setSaving(false); }
   };
+
   const remove = () => {
     Alert.alert('Supprimer', 'Supprimer cette monture ?', [
       { text: 'Annuler', style: 'cancel' },
@@ -98,32 +129,48 @@ function FrameModal({ visible, frame, onClose, onSaved }) {
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={m.overlay}>
-        <View style={m.sheet}>
-          <View style={m.header}><Text style={m.title}>{isEdit ? 'Modifier la monture' : 'Nouvelle monture'}</Text>
-            <TouchableOpacity onPress={onClose}><Ionicons name="close" size={24} color={colors.muted} /></TouchableOpacity></View>
-          <ScrollView>
-            <Field label="Marque *" value={form.brand} onChangeText={(v) => set('brand', v)} />
-            <Field label="Modèle *" value={form.model} onChangeText={(v) => set('model', v)} />
-            <Field label="Catégorie *" value={form.category} onChangeText={(v) => set('category', v)} />
-            <Field label="Couleur" value={form.color} onChangeText={(v) => set('color', v)} />
-            <Field label="Prix (MAD)" value={form.price} onChangeText={(v) => set('price', v)} keyboardType="numeric" />
-            <Field label="Stock" value={form.stock} onChangeText={(v) => set('stock', v)} keyboardType="numeric" />
-            <PrimaryButton title={isEdit ? 'Enregistrer' : 'Créer'} onPress={save} loading={saving} />
-            {isEdit && <PrimaryButton title="Supprimer" onPress={remove} color={colors.red} />}
-          </ScrollView>
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+    <>
+      <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={m.overlay}>
+          <View style={m.sheet}>
+            <View style={m.header}>
+              <Text style={m.title}>{isEdit ? 'Modifier la monture' : 'Nouvelle monture'}</Text>
+              <TouchableOpacity onPress={onClose}><Ionicons name="close" size={24} color={colors.muted} /></TouchableOpacity>
+            </View>
+            <ScrollView>
+              <Field label="Marque *" value={form.brand} onChangeText={(v) => set('brand', v)} />
+              <Field label="Modèle *" value={form.model} onChangeText={(v) => set('model', v)} />
+              <Field label="Catégorie *" value={form.category} onChangeText={(v) => set('category', v)} />
+              <Field label="Couleur" value={form.color} onChangeText={(v) => set('color', v)} />
+              <Field label="Prix (MAD)" value={form.price} onChangeText={(v) => set('price', v)} keyboardType="numeric" />
+              <Field label="Stock" value={form.stock} onChangeText={(v) => set('stock', v)} keyboardType="numeric" />
+              <View style={m.barcodeRow}>
+                <View style={{ flex: 1 }}>
+                  <Field label="Code-barres" value={form.barcode} onChangeText={(v) => set('barcode', v)} />
+                </View>
+                <TouchableOpacity style={m.scanIconBtn} onPress={() => setScannerOpen(true)}>
+                  <Ionicons name="barcode-outline" size={22} color={colors.primary} />
+                </TouchableOpacity>
+              </View>
+              <PrimaryButton title={isEdit ? 'Enregistrer' : 'Créer'} onPress={save} loading={saving} />
+              {isEdit && <PrimaryButton title="Supprimer" onPress={remove} color={colors.red} />}
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+      <BarcodeScanner visible={scannerOpen} onClose={() => setScannerOpen(false)} onScanned={(code) => { set('barcode', code); setScannerOpen(false); }} />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
+  searchRow: { flexDirection: 'row', alignItems: 'center', paddingRight: 12 },
+  scanBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: colors.border },
   card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', marginHorizontal: 12, marginVertical: 4, padding: 14, borderRadius: 12 },
   name: { fontSize: 15, fontWeight: '600', color: colors.text },
   sub: { fontSize: 13, color: colors.muted, marginTop: 2 },
+  barcode: { fontSize: 11, color: colors.muted, marginTop: 2, fontFamily: 'monospace' },
   stockBox: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   stockBtn: { width: 28, height: 28, borderRadius: 8, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
   stockNum: { fontSize: 15, fontWeight: '700', color: colors.text, minWidth: 22, textAlign: 'center' },
@@ -133,4 +180,6 @@ const m = StyleSheet.create({
   sheet: { backgroundColor: colors.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 16, maxHeight: '90%' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   title: { fontSize: 18, fontWeight: '700', color: colors.text },
+  barcodeRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+  scanIconBtn: { width: 46, height: 46, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderRadius: 10, borderWidth: 1, borderColor: colors.border, marginBottom: 12 },
 });

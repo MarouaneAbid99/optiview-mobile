@@ -1,8 +1,10 @@
 import { useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Linking } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Linking, Image, Modal } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { clientsAPI } from '../../api/client';
+import { uploadToCloudinary } from '../../api/upload';
 import { Loader, PrimaryButton } from '../../components/ui';
 import { colors } from '../../theme';
 import { ClientFormModal } from './ClientFormModal';
@@ -12,6 +14,8 @@ export function ClientDetailScreen({ route, navigation }) {
   const [client, setClient] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editModal, setEditModal] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [fullImage, setFullImage] = useState(null);
 
   const load = useCallback(async () => {
     try { const res = await clientsAPI.getClientById(id); setClient(res.data); }
@@ -39,6 +43,38 @@ export function ClientDetailScreen({ route, navigation }) {
     Linking.openURL(`https://wa.me/${d}`);
   };
 
+  const addPrescriptionPhoto = async (fromCamera) => {
+    if (fromCamera) {
+      const p = await ImagePicker.requestCameraPermissionsAsync();
+      if (!p.granted) { alert('Autorisation caméra requise'); return; }
+    } else {
+      const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!p.granted) { alert('Autorisation galerie requise'); return; }
+    }
+    const picker = fromCamera ? ImagePicker.launchCameraAsync : ImagePicker.launchImageLibraryAsync;
+    const result = await picker({ quality: 0.7, allowsEditing: true });
+    if (result.canceled) return;
+    const uri = result.assets[0].uri;
+    setUploading(true);
+    try {
+      const url = await uploadToCloudinary(uri);
+      await clientsAPI.createPrescription(client.id, { imageUrl: url, dateIssued: new Date().toISOString() });
+      await load();
+    } catch (e) {
+      alert('Échec du téléversement');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const chooseSource = () => {
+    Alert.alert('Ajouter une ordonnance', 'Choisir la source', [
+      { text: 'Caméra', onPress: () => addPrescriptionPhoto(true) },
+      { text: 'Galerie', onPress: () => addPrescriptionPhoto(false) },
+      { text: 'Annuler', style: 'cancel' },
+    ]);
+  };
+
   if (loading || !client) return <Loader />;
 
   return (
@@ -62,12 +98,27 @@ export function ClientDetailScreen({ route, navigation }) {
 
       {/* Prescriptions */}
       <Section title="Ordonnances">
+        <TouchableOpacity style={styles.addPhotoBtn} onPress={chooseSource} disabled={uploading}>
+          <Ionicons name="camera" size={18} color={colors.primary} />
+          <Text style={styles.addPhotoText}>{uploading ? 'Téléversement...' : '+ Photo ordonnance'}</Text>
+        </TouchableOpacity>
         {(client.prescriptions || []).length === 0
           ? <Text style={styles.muted}>Aucune ordonnance</Text>
           : client.prescriptions.map((p) => (
-            <View key={p.id} style={styles.rowItem}>
-              <Text style={styles.rowText}>OD: {p.sphereOD ?? '-'} / OG: {p.sphereOS ?? '-'}</Text>
-              <Text style={styles.muted}>{p.dateIssued ? new Date(p.dateIssued).toLocaleDateString('fr-FR') : ''}</Text>
+            <View key={p.id} style={styles.presRow}>
+              {p.imageUrl ? (
+                <TouchableOpacity onPress={() => setFullImage(p.imageUrl)}>
+                  <Image source={{ uri: p.imageUrl }} style={styles.presThumb} />
+                </TouchableOpacity>
+              ) : (
+                <View style={[styles.presThumb, { alignItems: 'center', justifyContent: 'center' }]}>
+                  <Ionicons name="document-text-outline" size={20} color={colors.muted} />
+                </View>
+              )}
+              <View>
+                <Text style={styles.rowText}>OD: {p.sphereOD ?? '-'} / OG: {p.sphereOS ?? '-'}</Text>
+                <Text style={styles.muted}>{p.dateIssued ? new Date(p.dateIssued).toLocaleDateString('fr-FR') : ''}</Text>
+              </View>
             </View>
           ))}
       </Section>
@@ -89,6 +140,16 @@ export function ClientDetailScreen({ route, navigation }) {
       </View>
 
       <ClientFormModal visible={editModal} client={client} onClose={() => setEditModal(false)} onSaved={() => { setEditModal(false); load(); }} />
+
+      {/* Full-screen image viewer */}
+      <Modal visible={!!fullImage} transparent animationType="fade" onRequestClose={() => setFullImage(null)}>
+        <View style={styles.imgOverlay}>
+          <TouchableOpacity style={styles.imgClose} onPress={() => setFullImage(null)}>
+            <Ionicons name="close" size={28} color="#fff" />
+          </TouchableOpacity>
+          {fullImage && <Image source={{ uri: fullImage }} style={styles.imgFull} resizeMode="contain" />}
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -117,4 +178,11 @@ const styles = StyleSheet.create({
   rowItem: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.bg },
   rowText: { color: colors.text },
   muted: { color: colors.muted },
+  addPhotoBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8 },
+  addPhotoText: { color: colors.primary, fontWeight: '600' },
+  presRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.bg },
+  presThumb: { width: 48, height: 48, borderRadius: 8, backgroundColor: colors.bg },
+  imgOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', alignItems: 'center', justifyContent: 'center' },
+  imgClose: { position: 'absolute', top: 50, right: 20, width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  imgFull: { width: '100%', height: '80%' },
 });
