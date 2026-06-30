@@ -8,12 +8,11 @@ import { colors, radius, space, shadow, statusStyle } from '../theme';
 import { OrderFormModal } from './orders/OrderFormModal';
 
 const STATUSES = ['pending', 'in-progress', 'ready', 'delivered', 'cancelled'];
-const STATUS_COLOR = { pending: '#f59e0b', 'in-progress': '#3b82f6', ready: '#22c55e', delivered: '#6b7280', cancelled: '#ef4444' };
 const STATUS_LABEL = { pending: 'En attente', 'in-progress': 'En cours', ready: 'Prêt', delivered: 'Livré', cancelled: 'Annulé' };
 const SS = statusStyle;
 const TYPE_LABEL = { sale: 'Vente', montage: 'Montage', sale_montage: 'Vente + Montage' };
 
-export function OrdersScreen() {
+export function OrdersContent() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -78,7 +77,7 @@ export function OrdersScreen() {
         data={filtered}
         keyExtractor={(i) => i.id}
         contentContainerStyle={{ paddingBottom: 90, paddingTop: 4 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={colors.teal} />}
         ListEmptyComponent={<EmptyState icon="receipt-outline" text="Aucune commande" />}
         renderItem={({ item }) => {
           const open = expanded === item.id;
@@ -143,18 +142,22 @@ export function OrdersScreen() {
   );
 }
 
+export function OrdersScreen() {
+  return <OrdersContent />;
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   chip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: radius.full, backgroundColor: '#fff', borderWidth: 1, borderColor: colors.border },
   chipText: { fontSize: 12, fontWeight: '600', color: colors.muted },
-  card: { backgroundColor: '#fff', marginHorizontal: space.md, marginVertical: 4, borderRadius: radius.md, overflow: 'hidden', ...shadow.card },
-  cardHead: { flexDirection: 'row', alignItems: 'center', padding: 14 },
+  card: { backgroundColor: '#fff', marginHorizontal: 16, marginVertical: 6, borderRadius: 16, overflow: 'hidden', borderWidth: 0.5, borderColor: colors.border, ...shadow.card },
+  cardHead: { flexDirection: 'row', alignItems: 'center', padding: 16 },
   orderNum: { fontSize: 15, fontWeight: '700', color: colors.text },
-  sub: { fontSize: 13, color: colors.muted, marginTop: 2 },
+  sub: { fontSize: 13, color: colors.muted, marginTop: 3 },
   price: { fontSize: 15, fontWeight: '700', color: colors.text },
   badge: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: radius.full, marginTop: 4 },
   badgeText: { fontSize: 11, fontWeight: '700' },
-  detail: { padding: 14, borderTopWidth: 1, borderTopColor: colors.bg, gap: 4 },
+  detail: { padding: 16, borderTopWidth: 1, borderTopColor: colors.bg, gap: 4 },
   line: { color: colors.text, fontSize: 14 },
   detailLabel: { fontSize: 11, fontWeight: '600', color: colors.muted, marginTop: 8, textTransform: 'uppercase', letterSpacing: 0.4 },
   statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },

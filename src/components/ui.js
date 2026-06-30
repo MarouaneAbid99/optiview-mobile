@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, space, shadow } from '../theme';
@@ -26,13 +27,20 @@ export function Fab({ onPress }) {
 }
 
 export function Field({ label, value, onChangeText, keyboardType, secureTextEntry, placeholder, multiline, icon }) {
+  const [focused, setFocused] = useState(false);
   return (
-    <View style={{ marginBottom: space.md }}>
-      {label ? <Text style={s.label}>{label}</Text> : null}
-      <View style={[s.inputWrap, multiline && { alignItems: 'flex-start' }]}>
-        {icon ? <Ionicons name={icon} size={17} color={colors.muted} style={{ marginRight: 8, marginTop: multiline ? 2 : 0 }} /> : null}
+    <View style={{ marginBottom: 18 }}>
+      <View style={[
+        fl.wrap,
+        multiline && { height: 92, alignItems: 'flex-start', paddingTop: 14 },
+        focused && fl.wrapActive,
+      ]}>
+        {label ? (
+          <Text style={[fl.floatLabel, focused && fl.floatLabelActive]}>{label}</Text>
+        ) : null}
+        {icon ? <Ionicons name={icon} size={18} color={focused ? colors.primary : colors.muted} style={{ marginRight: 10, marginTop: multiline ? 2 : 0 }} /> : null}
         <TextInput
-          style={[s.input, multiline && { height: 80, textAlignVertical: 'top' }]}
+          style={[fl.input, multiline && { height: 64, textAlignVertical: 'top' }]}
           value={value != null ? String(value) : ''}
           onChangeText={onChangeText}
           keyboardType={keyboardType}
@@ -40,6 +48,8 @@ export function Field({ label, value, onChangeText, keyboardType, secureTextEntr
           placeholder={placeholder}
           placeholderTextColor={colors.mutedLight}
           multiline={multiline}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
         />
       </View>
     </View>
@@ -72,6 +82,31 @@ export function PrimaryButton({ title, onPress, loading, color, icon }) {
         </View>
       )}
     </TouchableOpacity>
+  );
+}
+
+export function ButtonRow({ cancelLabel = 'Annuler', onCancel, actionLabel, onAction, loading, actionIcon = 'checkmark', actionColor }) {
+  const bg = actionColor || colors.teal;
+  return (
+    <View style={br.row}>
+      <TouchableOpacity style={br.cancel} onPress={onCancel} activeOpacity={0.8}>
+        <Text style={br.cancelText}>{cancelLabel}</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={[br.action, { backgroundColor: bg }]} onPress={onAction} disabled={loading} activeOpacity={0.85}>
+        {loading ? <ActivityIndicator color="#fff" /> : (
+          <View style={br.inner}>
+            <Ionicons name={actionIcon} size={17} color="#fff" />
+            <Text style={br.actionText}>{actionLabel}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+export function SectionLabel({ children }) {
+  return (
+    <Text style={s.sectionLabel}>{children}</Text>
   );
 }
 
@@ -110,23 +145,41 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     shadowColor: colors.teal, shadowOpacity: 0.4, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 6,
   },
-  label: { fontSize: 12, fontWeight: '600', color: colors.muted, marginBottom: 6, letterSpacing: 0.3, textTransform: 'uppercase' },
-  inputWrap: {
-    flexDirection: 'row', alignItems: 'center',
-    borderWidth: 1, borderColor: colors.border, borderRadius: radius.md,
-    paddingHorizontal: space.md, paddingVertical: 10,
-    backgroundColor: '#fff',
-  },
-  input: { flex: 1, fontSize: 15, color: colors.text },
   empty: { alignItems: 'center', justifyContent: 'center', padding: 48, gap: 12 },
   emptyIcon: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
   emptyText: { color: colors.muted, fontSize: 14 },
   loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  btn: { borderRadius: radius.md, paddingVertical: 14, alignItems: 'center', marginTop: 8 },
+  btn: { borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 8 },
   btnInner: { flexDirection: 'row', alignItems: 'center' },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
   badge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: radius.full },
   badgeText: { fontSize: 11, fontWeight: '700' },
   avatar: { alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: '#fff', fontWeight: '700' },
+  sectionLabel: { fontSize: 11, fontWeight: '700', color: colors.muted, letterSpacing: 0.6, textTransform: 'uppercase', marginHorizontal: 18, marginBottom: 10, marginTop: 6 },
+});
+
+const fl = StyleSheet.create({
+  wrap: {
+    flexDirection: 'row', alignItems: 'center',
+    borderWidth: 1.5, borderColor: colors.border, borderRadius: 12,
+    paddingHorizontal: 14, backgroundColor: colors.card, height: 52,
+  },
+  wrapActive: { borderColor: colors.primary },
+  floatLabel: {
+    position: 'absolute', top: -8, left: 12,
+    backgroundColor: colors.card, paddingHorizontal: 6,
+    fontSize: 11, color: colors.textSec, fontWeight: '600',
+  },
+  floatLabelActive: { color: colors.primary },
+  input: { flex: 1, fontSize: 15, color: colors.text, height: '100%' },
+});
+
+const br = StyleSheet.create({
+  row: { flexDirection: 'row', gap: 10, marginTop: 6 },
+  cancel: { flex: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: colors.border, borderRadius: 12, paddingVertical: 14 },
+  cancelText: { fontSize: 14, fontWeight: '600', color: colors.textSec },
+  action: { flex: 2, alignItems: 'center', justifyContent: 'center', borderRadius: 12, paddingVertical: 14 },
+  inner: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  actionText: { fontSize: 14, fontWeight: '700', color: '#fff' },
 });

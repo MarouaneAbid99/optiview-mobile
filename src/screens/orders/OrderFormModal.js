@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Modal, View, Text, ScrollView, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { atelierAPI, clientsAPI, eyewearAPI, lensesAPI } from '../../api/client';
-import { Field, PrimaryButton } from '../../components/ui';
+import { Field, PrimaryButton, ButtonRow } from '../../components/ui';
 import { colors, radius, space, shadow } from '../../theme';
 
 const TYPES = [
@@ -95,8 +95,12 @@ export function OrderFormModal({ visible, order, onClose, onSaved }) {
 
             {involvesMontage && <Field label="Prix montage (MAD)" value={labor} onChangeText={setLabor} keyboardType="numeric" />}
 
-            <PrimaryButton title={isEdit ? 'Enregistrer' : 'Créer la commande'} onPress={save} loading={saving} icon={isEdit ? 'checkmark' : 'add-circle-outline'} />
-            <View style={{ height: 20 }} />
+            <ButtonRow
+              cancelLabel="Annuler" onCancel={onClose}
+              actionLabel={isEdit ? 'Enregistrer' : 'Créer'} onAction={save}
+              loading={saving} actionIcon={isEdit ? 'checkmark' : 'add-circle-outline'}
+            />
+            <View style={{ height: 24 }} />
           </ScrollView>
         </View>
       </KeyboardAvoidingView>

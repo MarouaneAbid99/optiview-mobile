@@ -14,7 +14,6 @@ import { ClientDetailScreen } from '../screens/clients/ClientDetailScreen';
 import { EyewearScreen } from '../screens/EyewearScreen';
 import { LensesScreen } from '../screens/LensesScreen';
 import { AtelierScreen } from '../screens/AtelierScreen';
-import { OrdersScreen } from '../screens/OrdersScreen';
 import { DeskScreen } from '../screens/DeskScreen';
 
 const Stack = createNativeStackNavigator();
@@ -43,7 +42,6 @@ const ICONS = {
   Eyewear:  'glasses',
   Lenses:   'eye',
   Atelier:  'construct',
-  Orders:   'receipt',
 };
 
 function MainTabs() {
@@ -66,7 +64,6 @@ function MainTabs() {
       <Tab.Screen name="Eyewear" component={EyewearScreen} />
       <Tab.Screen name="Lenses" component={LensesScreen} />
       <Tab.Screen name="Atelier" component={AtelierScreen} />
-      <Tab.Screen name="Orders" component={OrdersScreen} />
     </Tab.Navigator>
   );
 }

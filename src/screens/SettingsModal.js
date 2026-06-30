@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Modal, View, Text, ScrollView, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { usersAPI } from '../api/client';
-import { Field, PrimaryButton } from '../components/ui';
+import { Field, ButtonRow } from '../components/ui';
 import { colors, radius, space, shadow } from '../theme';
 
 export function SettingsModal({ visible, onClose }) {
@@ -44,8 +44,12 @@ export function SettingsModal({ visible, onClose }) {
             <Field label="Ville" value={form.city} onChangeText={(v) => set('city', v)} icon="business-outline" />
             <Field label="Téléphone" value={form.phone} onChangeText={(v) => set('phone', v)} keyboardType="phone-pad" icon="call-outline" />
             <Field label="ICE" value={form.ice} onChangeText={(v) => set('ice', v)} icon="card-outline" />
-            <PrimaryButton title="Enregistrer" onPress={save} loading={saving} icon="checkmark" />
-            <View style={{ height: 20 }} />
+            <ButtonRow
+              cancelLabel="Annuler" onCancel={onClose}
+              actionLabel="Enregistrer" onAction={save}
+              loading={saving} actionIcon="checkmark"
+            />
+            <View style={{ height: 24 }} />
           </ScrollView>
         </View>
       </KeyboardAvoidingView>

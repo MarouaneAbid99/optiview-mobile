@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   colTitle: { fontSize: 14, fontWeight: '700', color: colors.text, flex: 1 },
   countBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: radius.full },
   count: { fontSize: 12, fontWeight: '700' },
-  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 13, borderRadius: radius.md, marginBottom: 6, ...shadow.card },
+  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 16, borderRadius: 16, marginBottom: 6, borderWidth: 0.5, borderColor: colors.border, ...shadow.card },
   num: { fontWeight: '700', color: colors.text, fontSize: 14 },
   sub: { color: colors.muted, fontSize: 13, marginTop: 2 },
   advBtn: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: radius.sm },

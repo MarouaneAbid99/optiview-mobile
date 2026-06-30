@@ -63,10 +63,11 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   card: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#fff', marginHorizontal: space.md, marginVertical: 4,
-    padding: 14, borderRadius: radius.md, gap: 12,
+    backgroundColor: '#fff', marginHorizontal: 16, marginVertical: 6,
+    padding: 16, borderRadius: 16, gap: 14,
+    borderWidth: 0.5, borderColor: colors.border,
     ...shadow.card,
   },
   name: { fontSize: 15, fontWeight: '600', color: colors.text },
-  sub: { fontSize: 13, color: colors.muted, marginTop: 2 },
+  sub: { fontSize: 13, color: colors.muted, marginTop: 3 },
 });

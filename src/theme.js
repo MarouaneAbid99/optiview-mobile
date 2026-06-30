@@ -2,6 +2,8 @@ export const colors = {
   // Primary palette
   navy: '#0B1B3A',
   navyLight: '#142451',
+  navy2: 'rgba(255,255,255,0.12)',   // subtle surface on navy bg
+  navyText: 'rgba(255,255,255,0.6)', // muted text on navy
   teal: '#1D9E75',
   tealLight: '#22B584',
   tealFaint: 'rgba(29,158,117,0.12)',
@@ -13,6 +15,7 @@ export const colors = {
 
   // Text
   text: '#0F1B35',
+  textSec: '#6B7A99',   // secondary / muted text (alias for muted)
   textLight: '#FFFFFF',
   muted: '#6B7A99',
   mutedLight: '#9AA3BB',
@@ -42,12 +45,12 @@ export const statusStyle = {
 };
 
 export const moduleColor = {
-  desk:    { icon: 'grid',     bg: 'rgba(29,158,117,0.12)',  fg: '#1D9E75' },
-  clients: { icon: 'people',   bg: 'rgba(59,130,246,0.12)', fg: '#3B82F6' },
-  eyewear: { icon: 'glasses',  bg: 'rgba(168,85,247,0.12)', fg: '#A855F7' },
-  lenses:  { icon: 'eye',      bg: 'rgba(249,115,22,0.12)', fg: '#F97316' },
-  atelier: { icon: 'construct',bg: 'rgba(234,179,8,0.12)',  fg: '#CA8A04' },
-  orders:  { icon: 'receipt',  bg: 'rgba(236,72,153,0.12)', fg: '#EC4899' },
+  desk:    { icon: 'grid',     bg: 'rgba(29,158,117,0.12)',  fg: '#1D9E75', soft: 'rgba(29,158,117,0.12)'  },
+  clients: { icon: 'people',   bg: 'rgba(59,130,246,0.12)', fg: '#3B82F6', soft: 'rgba(59,130,246,0.12)'  },
+  eyewear: { icon: 'glasses',  bg: 'rgba(168,85,247,0.12)', fg: '#A855F7', soft: 'rgba(168,85,247,0.12)'  },
+  lenses:  { icon: 'eye',      bg: 'rgba(249,115,22,0.12)', fg: '#F97316', soft: 'rgba(249,115,22,0.12)'  },
+  atelier: { icon: 'construct',bg: 'rgba(234,179,8,0.12)',  fg: '#CA8A04', soft: 'rgba(234,179,8,0.12)'   },
+  orders:  { icon: 'receipt',  bg: 'rgba(236,72,153,0.12)', fg: '#EC4899', soft: 'rgba(236,72,153,0.12)'  },
 };
 
 export const radius = { sm: 8, md: 12, lg: 16, xl: 20, full: 9999 };

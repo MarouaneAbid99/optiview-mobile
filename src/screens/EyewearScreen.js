@@ -3,7 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, Mod
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { eyewearAPI } from '../api/client';
-import { SearchBar, Fab, EmptyState, Loader, Field, PrimaryButton } from '../components/ui';
+import { SearchBar, Fab, EmptyState, Loader, Field, PrimaryButton, ButtonRow } from '../components/ui';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { colors, radius, space, shadow } from '../theme';
 
@@ -153,9 +153,13 @@ function FrameModal({ visible, frame, prefillBarcode, onClose, onSaved }) {
                   <Ionicons name="barcode-outline" size={22} color={colors.teal} />
                 </TouchableOpacity>
               </View>
-              <PrimaryButton title={isEdit ? 'Enregistrer' : 'Créer'} onPress={save} loading={saving} icon={isEdit ? 'checkmark' : 'add'} />
+              <ButtonRow
+                cancelLabel="Annuler" onCancel={onClose}
+                actionLabel={isEdit ? 'Enregistrer' : 'Créer'} onAction={save}
+                loading={saving} actionIcon={isEdit ? 'checkmark' : 'add'}
+              />
               {isEdit && <PrimaryButton title="Supprimer" onPress={remove} color={colors.red} icon="trash-outline" />}
-              <View style={{ height: 20 }} />
+              <View style={{ height: 24 }} />
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
@@ -169,9 +173,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   searchRow: { flexDirection: 'row', alignItems: 'center', paddingRight: 12 },
   scanBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, ...shadow.card },
-  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', marginHorizontal: space.md, marginVertical: 4, padding: 14, borderRadius: radius.md, ...shadow.card },
+  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', marginHorizontal: 16, marginVertical: 6, padding: 16, borderRadius: 16, borderWidth: 0.5, borderColor: colors.border, ...shadow.card },
   name: { fontSize: 15, fontWeight: '600', color: colors.text },
-  sub: { fontSize: 13, color: colors.muted, marginTop: 2 },
+  sub: { fontSize: 13, color: colors.muted, marginTop: 3 },
   barcode: { fontSize: 11, color: colors.mutedLight, marginTop: 2, fontFamily: 'monospace' },
   stockBox: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   stockBtn: { width: 30, height: 30, borderRadius: radius.sm, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Modal, View, Text, ScrollView, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { clientsAPI } from '../../api/client';
-import { Field, PrimaryButton } from '../../components/ui';
+import { Field, ButtonRow } from '../../components/ui';
 import { colors, radius, space, shadow } from '../../theme';
 
 export function ClientFormModal({ visible, onClose, onSaved, client }) {
@@ -43,8 +43,12 @@ export function ClientFormModal({ visible, onClose, onSaved, client }) {
             <Field label="Téléphone" value={form.phone} onChangeText={(v) => set('phone', v)} keyboardType="phone-pad" icon="call-outline" />
             <Field label="Email" value={form.email} onChangeText={(v) => set('email', v)} keyboardType="email-address" icon="mail-outline" />
             <Field label="Adresse" value={form.address} onChangeText={(v) => set('address', v)} multiline icon="location-outline" />
-            <PrimaryButton title={isEdit ? 'Enregistrer' : 'Créer'} onPress={save} loading={saving} icon={isEdit ? 'checkmark' : 'add'} />
-            <View style={{ height: 20 }} />
+            <ButtonRow
+              cancelLabel="Annuler" onCancel={onClose}
+              actionLabel={isEdit ? 'Enregistrer' : 'Créer'} onAction={save}
+              loading={saving} actionIcon={isEdit ? 'checkmark' : 'add'}
+            />
+            <View style={{ height: 24 }} />
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
