@@ -57,6 +57,7 @@ export const clientsAPI = {
   deleteClient: (id) => client.delete(`/clients/${id}`),
   getStats: () => client.get('/clients/stats'),
   createPrescription: (clientId, data) => client.post(`/clients/${clientId}/prescriptions`, data),
+  upcomingAppointments: () => client.get('/clients/appointments/upcoming'),
 };
 
 export const eyewearAPI = {

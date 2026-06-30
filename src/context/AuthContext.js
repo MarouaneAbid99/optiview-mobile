@@ -1,7 +1,18 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { authAPI, tokenStore, setUnauthorizedHandler } from '../api/client';
+import { authAPI, clientsAPI, tokenStore, setUnauthorizedHandler } from '../api/client';
+import { registerForPush, unregisterPush, scheduleAppointmentReminders } from '../notifications/setup';
 
 const AuthContext = createContext(null);
+
+async function afterAuth() {
+  try {
+    await registerForPush();
+    const res = await clientsAPI.upcomingAppointments();
+    await scheduleAppointmentReminders(res.data || []);
+  } catch (e) {
+    console.error('afterAuth error', e);
+  }
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -15,6 +26,7 @@ export function AuthProvider({ children }) {
       try {
         const res = await authAPI.me();
         setUser(res.data);
+        afterAuth();
       } catch {
         await tokenStore.clear();
       } finally {
@@ -28,6 +40,7 @@ export function AuthProvider({ children }) {
     await tokenStore.set(res.data.token);
     const me = await authAPI.me();
     setUser(me.data);
+    afterAuth();
     return me.data;
   };
 
@@ -36,10 +49,12 @@ export function AuthProvider({ children }) {
     await tokenStore.set(res.data.token);
     const me = await authAPI.me();
     setUser(me.data);
+    afterAuth();
     return me.data;
   };
 
   const logout = async () => {
+    await unregisterPush();
     await tokenStore.clear();
     setUser(null);
   };
