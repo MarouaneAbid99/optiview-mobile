@@ -3,7 +3,7 @@ import { Modal, View, Text, ScrollView, TouchableOpacity, StyleSheet, KeyboardAv
 import { Ionicons } from '@expo/vector-icons';
 import { atelierAPI, clientsAPI, eyewearAPI, lensesAPI } from '../../api/client';
 import { Field, PrimaryButton } from '../../components/ui';
-import { colors } from '../../theme';
+import { colors, radius, space, shadow } from '../../theme';
 
 const TYPES = [
   { key: 'sale', label: 'Vente' },
@@ -68,16 +68,17 @@ export function OrderFormModal({ visible, order, onClose, onSaved }) {
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s.overlay}>
         <View style={s.sheet}>
+          <View style={s.grabber} />
           <View style={s.header}>
             <Text style={s.title}>{isEdit ? 'Modifier la commande' : 'Nouvelle commande'}</Text>
-            <TouchableOpacity onPress={onClose}><Ionicons name="close" size={24} color={colors.muted} /></TouchableOpacity>
+            <TouchableOpacity onPress={onClose} style={s.closeBtn}><Ionicons name="close" size={20} color={colors.muted} /></TouchableOpacity>
           </View>
-          <ScrollView>
+          <ScrollView showsVerticalScrollIndicator={false}>
             <Text style={s.label}>Type</Text>
             <View style={s.typeRow}>
               {TYPES.map((t) => (
                 <TouchableOpacity key={t.key} onPress={() => setType(t.key)}
-                  style={[s.typeBtn, type === t.key && { backgroundColor: colors.primary, borderColor: colors.primary }]}>
+                  style={[s.typeBtn, type === t.key && { backgroundColor: colors.teal, borderColor: colors.teal }]}>
                   <Text style={[s.typeText, type === t.key && { color: '#fff' }]}>{t.label}</Text>
                 </TouchableOpacity>
               ))}
@@ -94,7 +95,8 @@ export function OrderFormModal({ visible, order, onClose, onSaved }) {
 
             {involvesMontage && <Field label="Prix montage (MAD)" value={labor} onChangeText={setLabor} keyboardType="numeric" />}
 
-            <PrimaryButton title={isEdit ? 'Enregistrer' : 'Créer la commande'} onPress={save} loading={saving} />
+            <PrimaryButton title={isEdit ? 'Enregistrer' : 'Créer la commande'} onPress={save} loading={saving} icon={isEdit ? 'checkmark' : 'add-circle-outline'} />
+            <View style={{ height: 20 }} />
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
@@ -109,7 +111,7 @@ function Picker({ label, items, value, onSelect, allowNone }) {
     <View style={{ marginBottom: 12 }}>
       <Text style={s.label}>{label}</Text>
       <TouchableOpacity style={s.pickerBox} onPress={() => setOpen((o) => !o)}>
-        <Text style={{ color: selected ? colors.text : colors.muted }}>{selected ? selected.label : 'Sélectionner...'}</Text>
+        <Text style={{ color: selected ? colors.text : colors.mutedLight, fontSize: 14 }}>{selected ? selected.label : 'Sélectionner...'}</Text>
         <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={18} color={colors.muted} />
       </TouchableOpacity>
       {open && (
@@ -120,7 +122,7 @@ function Picker({ label, items, value, onSelect, allowNone }) {
           <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
             {items.map((i) => (
               <TouchableOpacity key={i.id} style={s.pickerItem} onPress={() => { onSelect(i.id); setOpen(false); }}>
-                <Text style={{ color: value === i.id ? colors.primary : colors.text, fontWeight: value === i.id ? '700' : '400' }}>{i.label}</Text>
+                <Text style={{ color: value === i.id ? colors.teal : colors.text, fontWeight: value === i.id ? '700' : '400', fontSize: 14 }}>{i.label}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -131,15 +133,17 @@ function Picker({ label, items, value, onSelect, allowNone }) {
 }
 
 const s = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: colors.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 16, maxHeight: '92%' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  title: { fontSize: 18, fontWeight: '700', color: colors.text },
-  label: { fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 6 },
+  overlay: { flex: 1, backgroundColor: 'rgba(11,27,58,0.5)', justifyContent: 'flex-end' },
+  sheet: { backgroundColor: '#fff', borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: space.lg, maxHeight: '92%', ...shadow.header },
+  grabber: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, alignSelf: 'center', marginBottom: 14 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  title: { fontSize: 17, fontWeight: '800', color: colors.text },
+  closeBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
+  label: { fontSize: 12, fontWeight: '600', color: colors.muted, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.4 },
   typeRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
-  typeBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: colors.border, alignItems: 'center', backgroundColor: '#fff' },
-  typeText: { fontSize: 12, color: colors.text, fontWeight: '600' },
-  pickerBox: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, backgroundColor: '#fff' },
-  pickerList: { backgroundColor: '#fff', borderWidth: 1, borderColor: colors.border, borderRadius: 10, marginTop: 4 },
-  pickerItem: { padding: 12, borderBottomWidth: 1, borderBottomColor: colors.bg },
+  typeBtn: { flex: 1, paddingVertical: 10, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.border, alignItems: 'center', backgroundColor: '#fff' },
+  typeText: { fontSize: 12, color: colors.muted, fontWeight: '600' },
+  pickerBox: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: 12, backgroundColor: colors.bg },
+  pickerList: { backgroundColor: '#fff', borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, marginTop: 4, ...shadow.card },
+  pickerItem: { padding: 13, borderBottomWidth: 1, borderBottomColor: colors.bg },
 });

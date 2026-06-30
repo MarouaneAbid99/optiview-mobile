@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { eyewearAPI } from '../api/client';
 import { SearchBar, Fab, EmptyState, Loader, Field, PrimaryButton } from '../components/ui';
 import { BarcodeScanner } from '../components/BarcodeScanner';
-import { colors } from '../theme';
+import { colors, radius, space, shadow } from '../theme';
 
 export function EyewearScreen() {
   const [frames, setFrames] = useState([]);
@@ -47,7 +47,7 @@ export function EyewearScreen() {
           <SearchBar value={search} onChangeText={setSearch} placeholder="Marque ou modèle..." />
         </View>
         <TouchableOpacity style={styles.scanBtn} onPress={() => setScannerOpen(true)}>
-          <Ionicons name="barcode-outline" size={24} color={colors.primary} />
+          <Ionicons name="barcode-outline" size={22} color={colors.teal} />
         </TouchableOpacity>
       </View>
       <FlatList
@@ -133,11 +133,12 @@ function FrameModal({ visible, frame, prefillBarcode, onClose, onSaved }) {
       <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={m.overlay}>
           <View style={m.sheet}>
+            <View style={m.grabber} />
             <View style={m.header}>
               <Text style={m.title}>{isEdit ? 'Modifier la monture' : 'Nouvelle monture'}</Text>
-              <TouchableOpacity onPress={onClose}><Ionicons name="close" size={24} color={colors.muted} /></TouchableOpacity>
+              <TouchableOpacity onPress={onClose} style={m.closeBtn}><Ionicons name="close" size={20} color={colors.muted} /></TouchableOpacity>
             </View>
-            <ScrollView>
+            <ScrollView showsVerticalScrollIndicator={false}>
               <Field label="Marque *" value={form.brand} onChangeText={(v) => set('brand', v)} />
               <Field label="Modèle *" value={form.model} onChangeText={(v) => set('model', v)} />
               <Field label="Catégorie *" value={form.category} onChangeText={(v) => set('category', v)} />
@@ -149,11 +150,12 @@ function FrameModal({ visible, frame, prefillBarcode, onClose, onSaved }) {
                   <Field label="Code-barres" value={form.barcode} onChangeText={(v) => set('barcode', v)} />
                 </View>
                 <TouchableOpacity style={m.scanIconBtn} onPress={() => setScannerOpen(true)}>
-                  <Ionicons name="barcode-outline" size={22} color={colors.primary} />
+                  <Ionicons name="barcode-outline" size={22} color={colors.teal} />
                 </TouchableOpacity>
               </View>
-              <PrimaryButton title={isEdit ? 'Enregistrer' : 'Créer'} onPress={save} loading={saving} />
-              {isEdit && <PrimaryButton title="Supprimer" onPress={remove} color={colors.red} />}
+              <PrimaryButton title={isEdit ? 'Enregistrer' : 'Créer'} onPress={save} loading={saving} icon={isEdit ? 'checkmark' : 'add'} />
+              {isEdit && <PrimaryButton title="Supprimer" onPress={remove} color={colors.red} icon="trash-outline" />}
+              <View style={{ height: 20 }} />
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
@@ -166,20 +168,22 @@ function FrameModal({ visible, frame, prefillBarcode, onClose, onSaved }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   searchRow: { flexDirection: 'row', alignItems: 'center', paddingRight: 12 },
-  scanBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: colors.border },
-  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', marginHorizontal: 12, marginVertical: 4, padding: 14, borderRadius: 12 },
+  scanBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, ...shadow.card },
+  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', marginHorizontal: space.md, marginVertical: 4, padding: 14, borderRadius: radius.md, ...shadow.card },
   name: { fontSize: 15, fontWeight: '600', color: colors.text },
   sub: { fontSize: 13, color: colors.muted, marginTop: 2 },
-  barcode: { fontSize: 11, color: colors.muted, marginTop: 2, fontFamily: 'monospace' },
-  stockBox: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  stockBtn: { width: 28, height: 28, borderRadius: 8, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
-  stockNum: { fontSize: 15, fontWeight: '700', color: colors.text, minWidth: 22, textAlign: 'center' },
+  barcode: { fontSize: 11, color: colors.mutedLight, marginTop: 2, fontFamily: 'monospace' },
+  stockBox: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  stockBtn: { width: 30, height: 30, borderRadius: radius.sm, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
+  stockNum: { fontSize: 15, fontWeight: '700', color: colors.text, minWidth: 24, textAlign: 'center' },
 });
 const m = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: colors.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 16, maxHeight: '90%' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  title: { fontSize: 18, fontWeight: '700', color: colors.text },
+  overlay: { flex: 1, backgroundColor: 'rgba(11,27,58,0.5)', justifyContent: 'flex-end' },
+  sheet: { backgroundColor: '#fff', borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: space.lg, maxHeight: '90%', ...shadow.header },
+  grabber: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, alignSelf: 'center', marginBottom: 14 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  title: { fontSize: 17, fontWeight: '800', color: colors.text },
+  closeBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
   barcodeRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
-  scanIconBtn: { width: 46, height: 46, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderRadius: 10, borderWidth: 1, borderColor: colors.border, marginBottom: 12 },
+  scanIconBtn: { width: 46, height: 46, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.tealFaint, borderRadius: radius.md, marginBottom: 12 },
 });

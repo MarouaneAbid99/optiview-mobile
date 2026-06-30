@@ -23,7 +23,13 @@ const ClientsStackNav = createNativeStackNavigator();
 
 function ClientsStack() {
   return (
-    <ClientsStackNav.Navigator screenOptions={{ headerStyle: { backgroundColor: colors.primary }, headerTintColor: '#fff' }}>
+    <ClientsStackNav.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: colors.navy },
+        headerTintColor: '#fff',
+        headerTitleStyle: { fontWeight: '700' },
+      }}
+    >
       <ClientsStackNav.Screen name="ClientsList" component={ClientsListScreen} options={{ title: 'Clients' }} />
       <ClientsStackNav.Screen name="ClientDetail" component={ClientDetailScreen} options={{ title: 'Fiche client' }} />
     </ClientsStackNav.Navigator>
@@ -31,29 +37,31 @@ function ClientsStack() {
 }
 
 const ICONS = {
-  Boutique: 'home-outline',
-  Desk: 'grid-outline',
-  Clients: 'people-outline',
-  Eyewear: 'glasses-outline',
-  Lenses: 'eye-outline',
-  Atelier: 'construct-outline',
-  Orders: 'receipt-outline',
+  Boutique: 'home',
+  Desk:     'grid',
+  Clients:  'people',
+  Eyewear:  'glasses',
+  Lenses:   'eye',
+  Atelier:  'construct',
+  Orders:   'receipt',
 };
 
 function MainTabs() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        headerStyle: { backgroundColor: colors.primary },
+        headerStyle: { backgroundColor: colors.navy },
         headerTintColor: '#fff',
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.muted,
-        tabBarLabelStyle: { fontSize: 10 },
+        headerTitleStyle: { fontWeight: '700' },
+        tabBarStyle: { backgroundColor: colors.navy, borderTopWidth: 0, elevation: 10 },
+        tabBarActiveTintColor: colors.teal,
+        tabBarInactiveTintColor: 'rgba(255,255,255,0.4)',
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
         tabBarIcon: ({ color, size }) => <Ionicons name={ICONS[route.name]} size={size} color={color} />,
       })}
     >
       <Tab.Screen name="Boutique" component={PanoramaScreen} options={{ headerShown: false }} />
-      <Tab.Screen name="Desk" component={DeskScreen} />
+      <Tab.Screen name="Desk" component={DeskScreen} options={{ headerShown: false }} />
       <Tab.Screen name="Clients" component={ClientsStack} options={{ headerShown: false }} />
       <Tab.Screen name="Eyewear" component={EyewearScreen} />
       <Tab.Screen name="Lenses" component={LensesScreen} />
@@ -67,7 +75,7 @@ export function RootNavigator() {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator size="large" color={colors.primary} /></View>;
+    return <View style={{ flex: 1, justifyContent: 'center', backgroundColor: colors.navy }}><ActivityIndicator size="large" color={colors.teal} /></View>;
   }
 
   return (

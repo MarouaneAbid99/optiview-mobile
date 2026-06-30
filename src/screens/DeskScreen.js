@@ -5,7 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { clientsAPI, eyewearAPI, lensesAPI, atelierAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { Loader } from '../components/ui';
-import { colors } from '../theme';
+import { AppHeader } from '../components/AppHeader';
+import { colors, radius, space, shadow, moduleColor } from '../theme';
 import { OrderFormModal } from './orders/OrderFormModal';
 import { SettingsModal } from './SettingsModal';
 
@@ -35,61 +36,69 @@ export function DeskScreen() {
 
   if (loading) return <Loader />;
 
-  const Card = ({ icon, label, value, color }) => (
-    <View style={styles.statCard}>
-      <View style={[styles.iconCircle, { backgroundColor: color + '22' }]}><Ionicons name={icon} size={22} color={color} /></View>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
-  );
+  const STAT_CARDS = [
+    { key: 'clients',     icon: 'people',    label: 'Clients',       value: stats.clients,               mc: moduleColor.clients },
+    { key: 'frames',      icon: 'glasses',   label: 'Montures',      value: stats.frames,                mc: moduleColor.eyewear },
+    { key: 'lenses',      icon: 'eye',       label: 'Verres',        value: stats.lenses,                mc: moduleColor.lenses },
+    { key: 'orders',      icon: 'construct', label: 'Cmd actives',   value: stats.activeOrders,          mc: moduleColor.atelier },
+    { key: 'revenue',     icon: 'cash',      label: 'CA livré (MAD)',value: Math.round(stats.revenue),   mc: moduleColor.orders },
+  ];
+
+  const rightActions = [
+    ...(user?.role === 'OPTICIAN' ? [{ name: 'settings', onPress: () => setSettings(true) }] : []),
+    { name: 'log-out', onPress: logout, color: 'rgba(239,68,68,0.9)' },
+  ];
 
   return (
-    <ScrollView style={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}>
-      <View style={styles.greeting}>
-        <View>
-          <Text style={styles.hello}>Bonjour, {user?.name}</Text>
-          <Text style={styles.shop}>{user?.shop?.name || ''}</Text>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <AppHeader
+        title={`Bonjour, ${user?.name || ''}`}
+        subtitle={user?.shop?.name || ''}
+        rightActions={rightActions}
+      />
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={colors.teal} />}
+      >
+        <View style={styles.grid}>
+          {STAT_CARDS.map(({ key, icon, label, value, mc }) => (
+            <View key={key} style={styles.statCard}>
+              <View style={[styles.iconChip, { backgroundColor: mc.bg }]}>
+                <Ionicons name={icon} size={20} color={mc.fg} />
+              </View>
+              <Text style={styles.statValue}>{value}</Text>
+              <Text style={styles.statLabel}>{label}</Text>
+            </View>
+          ))}
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          {user?.role === 'OPTICIAN' && (
-            <TouchableOpacity onPress={() => setSettings(true)}>
-              <Ionicons name="settings-outline" size={24} color={colors.muted} />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity onPress={logout}><Ionicons name="log-out-outline" size={24} color={colors.red} /></TouchableOpacity>
-        </View>
-      </View>
 
-      <View style={styles.grid}>
-        <Card icon="people" label="Clients" value={stats.clients} color={colors.green} />
-        <Card icon="glasses" label="Montures" value={stats.frames} color={colors.blue} />
-        <Card icon="eye" label="Verres" value={stats.lenses} color={colors.purple} />
-        <Card icon="construct" label="Cmd actives" value={stats.activeOrders} color={colors.orange} />
-        <Card icon="cash" label="CA livré (MAD)" value={Math.round(stats.revenue)} color={colors.teal} />
-      </View>
-
-      <TouchableOpacity style={styles.newOrderBtn} onPress={() => setModal(true)}>
-        <Ionicons name="add-circle" size={22} color="#fff" />
-        <Text style={styles.newOrderText}>Nouvelle commande</Text>
-      </TouchableOpacity>
+        <TouchableOpacity style={styles.newOrderBtn} onPress={() => setModal(true)} activeOpacity={0.85}>
+          <Ionicons name="add-circle" size={20} color="#fff" />
+          <Text style={styles.newOrderText}>Nouvelle commande</Text>
+        </TouchableOpacity>
+      </ScrollView>
 
       <OrderFormModal visible={modal} order={null} onClose={() => setModal(false)} onSaved={() => { setModal(false); load(); }} />
       <SettingsModal visible={settings} onClose={() => setSettings(false)} />
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  greeting: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
-  hello: { fontSize: 20, fontWeight: '700', color: colors.text },
-  shop: { color: colors.muted, marginTop: 2 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 8, gap: 8 },
-  statCard: { width: '47%', backgroundColor: '#fff', borderRadius: 14, padding: 16, margin: '1.5%', alignItems: 'flex-start' },
-  iconCircle: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  statValue: { fontSize: 22, fontWeight: '800', color: colors.text },
-  statLabel: { color: colors.muted, fontSize: 13, marginTop: 2 },
-  newOrderBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.primary, margin: 16, paddingVertical: 14, borderRadius: 12 },
+  scroll: { padding: space.md, paddingBottom: 32 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
+  statCard: {
+    width: '47%',
+    backgroundColor: '#fff', borderRadius: radius.lg, padding: 16,
+    ...shadow.card,
+  },
+  iconChip: { width: 40, height: 40, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+  statValue: { fontSize: 24, fontWeight: '800', color: colors.text },
+  statLabel: { color: colors.muted, fontSize: 12, marginTop: 2, fontWeight: '500' },
+  newOrderBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: colors.teal, paddingVertical: 15, borderRadius: radius.lg,
+    shadowColor: colors.teal, shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 5,
+  },
   newOrderText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });

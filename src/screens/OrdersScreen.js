@@ -4,12 +4,13 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { atelierAPI } from '../api/client';
 import { SearchBar, Fab, EmptyState, Loader } from '../components/ui';
-import { colors } from '../theme';
+import { colors, radius, space, shadow, statusStyle } from '../theme';
 import { OrderFormModal } from './orders/OrderFormModal';
 
 const STATUSES = ['pending', 'in-progress', 'ready', 'delivered', 'cancelled'];
 const STATUS_COLOR = { pending: '#f59e0b', 'in-progress': '#3b82f6', ready: '#22c55e', delivered: '#6b7280', cancelled: '#ef4444' };
 const STATUS_LABEL = { pending: 'En attente', 'in-progress': 'En cours', ready: 'Prêt', delivered: 'Livré', cancelled: 'Annulé' };
+const SS = statusStyle;
 const TYPE_LABEL = { sale: 'Vente', montage: 'Montage', sale_montage: 'Vente + Montage' };
 
 export function OrdersScreen() {
@@ -66,7 +67,7 @@ export function OrdersScreen() {
         contentContainerStyle={{ paddingHorizontal: 12, gap: 8, alignItems: 'center' }}
         renderItem={({ item }) => (
           <TouchableOpacity onPress={() => setStatusFilter(item)}
-            style={[styles.chip, statusFilter === item && { backgroundColor: colors.primary }]}>
+            style={[styles.chip, statusFilter === item && { backgroundColor: colors.navy, borderColor: colors.navy }]}>
             <Text style={[styles.chipText, statusFilter === item && { color: '#fff' }]}>
               {item === 'all' ? 'Tous' : STATUS_LABEL[item]}
             </Text>
@@ -90,7 +91,9 @@ export function OrdersScreen() {
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
                   <Text style={styles.price}>{item.totalPrice} MAD</Text>
-                  <View style={[styles.badge, { backgroundColor: STATUS_COLOR[item.status] }]}><Text style={styles.badgeText}>{STATUS_LABEL[item.status]}</Text></View>
+                  <View style={[styles.badge, { backgroundColor: (SS[item.status] || SS.pending).bg }]}>
+                    <Text style={[styles.badgeText, { color: (SS[item.status] || SS.pending).text }]}>{STATUS_LABEL[item.status]}</Text>
+                  </View>
                 </View>
               </TouchableOpacity>
 
@@ -102,25 +105,30 @@ export function OrdersScreen() {
 
                   <Text style={styles.detailLabel}>Statut</Text>
                   <View style={styles.statusRow}>
-                    {STATUSES.map((st) => (
-                      <TouchableOpacity key={st} onPress={() => changeStatus(item, st)}
-                        style={[styles.statusPill, item.status === st && { backgroundColor: STATUS_COLOR[st] }]}>
-                        <Text style={[styles.statusPillText, item.status === st && { color: '#fff' }]}>{STATUS_LABEL[st]}</Text>
-                      </TouchableOpacity>
-                    ))}
+                    {STATUSES.map((st) => {
+                      const active = item.status === st;
+                      const ss = SS[st] || SS.pending;
+                      return (
+                        <TouchableOpacity key={st} onPress={() => changeStatus(item, st)}
+                          style={[styles.statusPill, { backgroundColor: active ? ss.bg : colors.bg, borderColor: active ? ss.dot : colors.border }]}>
+                          <View style={[styles.statusDot, { backgroundColor: ss.dot }]} />
+                          <Text style={[styles.statusPillText, { color: active ? ss.text : colors.muted }]}>{STATUS_LABEL[st]}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
 
                   <View style={styles.actions}>
                     <TouchableOpacity style={[styles.actBtn, { borderColor: colors.border }]} onPress={() => { setEditing(item); setModal(true); }}>
-                      <Ionicons name="pencil" size={15} color={colors.text} /><Text style={styles.actText}>Modifier</Text>
+                      <Ionicons name="pencil" size={14} color={colors.text} /><Text style={styles.actText}>Modifier</Text>
                     </TouchableOpacity>
                     {!!item.client?.phone && (
-                      <TouchableOpacity style={[styles.actBtn, { backgroundColor: colors.green, borderColor: colors.green }]} onPress={() => whatsapp(item)}>
-                        <Ionicons name="logo-whatsapp" size={15} color="#fff" /><Text style={[styles.actText, { color: '#fff' }]}>WhatsApp</Text>
+                      <TouchableOpacity style={[styles.actBtn, { backgroundColor: '#25D366', borderColor: '#25D366' }]} onPress={() => whatsapp(item)}>
+                        <Ionicons name="logo-whatsapp" size={14} color="#fff" /><Text style={[styles.actText, { color: '#fff' }]}>WhatsApp</Text>
                       </TouchableOpacity>
                     )}
                     <TouchableOpacity style={[styles.actBtn, { borderColor: '#fecaca' }]} onPress={() => remove(item)}>
-                      <Ionicons name="trash" size={15} color={colors.red} /><Text style={[styles.actText, { color: colors.red }]}>Suppr.</Text>
+                      <Ionicons name="trash" size={14} color={colors.red} /><Text style={[styles.actText, { color: colors.red }]}>Suppr.</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -137,22 +145,23 @@ export function OrdersScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  chip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: '#fff', borderWidth: 1, borderColor: colors.border },
-  chipText: { fontSize: 13, color: colors.text },
-  card: { backgroundColor: '#fff', marginHorizontal: 12, marginVertical: 4, borderRadius: 12, overflow: 'hidden' },
+  chip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: radius.full, backgroundColor: '#fff', borderWidth: 1, borderColor: colors.border },
+  chipText: { fontSize: 12, fontWeight: '600', color: colors.muted },
+  card: { backgroundColor: '#fff', marginHorizontal: space.md, marginVertical: 4, borderRadius: radius.md, overflow: 'hidden', ...shadow.card },
   cardHead: { flexDirection: 'row', alignItems: 'center', padding: 14 },
   orderNum: { fontSize: 15, fontWeight: '700', color: colors.text },
   sub: { fontSize: 13, color: colors.muted, marginTop: 2 },
   price: { fontSize: 15, fontWeight: '700', color: colors.text },
-  badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, marginTop: 4 },
-  badgeText: { color: '#fff', fontSize: 11, fontWeight: '600' },
+  badge: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: radius.full, marginTop: 4 },
+  badgeText: { fontSize: 11, fontWeight: '700' },
   detail: { padding: 14, borderTopWidth: 1, borderTopColor: colors.bg, gap: 4 },
   line: { color: colors.text, fontSize: 14 },
-  detailLabel: { fontSize: 12, color: colors.muted, marginTop: 8 },
-  statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
-  statusPill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: colors.bg },
-  statusPillText: { fontSize: 12, color: colors.text },
+  detailLabel: { fontSize: 11, fontWeight: '600', color: colors.muted, marginTop: 8, textTransform: 'uppercase', letterSpacing: 0.4 },
+  statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
+  statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: radius.full, borderWidth: 1 },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  statusPillText: { fontSize: 11, fontWeight: '600' },
   actions: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  actBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1 },
-  actText: { fontSize: 13, color: colors.text, fontWeight: '600' },
+  actBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 8, borderRadius: radius.sm, borderWidth: 1 },
+  actText: { fontSize: 12, color: colors.text, fontWeight: '600' },
 });

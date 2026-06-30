@@ -120,7 +120,7 @@ export function PanoramaScreen() {
   };
 
   if (loading) {
-    return <View style={styles.center}><ActivityIndicator size="large" color={colors.primary} /></View>;
+    return <View style={styles.center}><ActivityIndicator size="large" color={colors.teal} /></View>;
   }
   if (!store?.imageUrl) {
     return (
@@ -183,9 +183,9 @@ const styles = StyleSheet.create({
   stage: { flex: 1, overflow: 'hidden', backgroundColor: '#111827', alignItems: 'center', justifyContent: 'center' },
   layer: { position: 'absolute' },
   anchorWrap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  dotOuter: { width: 16, height: 16, borderRadius: 8, backgroundColor: 'rgba(37,99,235,0.35)', alignItems: 'center', justifyContent: 'center' },
-  dotInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#2563eb', borderWidth: 2, borderColor: '#fff' },
-  labelCard: { backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 4, elevation: 3 },
-  labelTitle: { fontSize: 12, fontWeight: '700', color: '#111827' },
-  labelSub: { fontSize: 10, color: '#6b7280' },
+  dotOuter: { width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(29,158,117,0.3)', alignItems: 'center', justifyContent: 'center' },
+  dotInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#1D9E75', borderWidth: 2, borderColor: '#fff' },
+  labelCard: { backgroundColor: 'rgba(11,27,58,0.88)', borderRadius: 8, paddingHorizontal: 9, paddingVertical: 5, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 },
+  labelTitle: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  labelSub: { fontSize: 10, color: 'rgba(255,255,255,0.65)' },
 });

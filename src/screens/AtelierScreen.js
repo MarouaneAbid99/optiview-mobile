@@ -3,11 +3,11 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } 
 import { useFocusEffect } from '@react-navigation/native';
 import { atelierAPI } from '../api/client';
 import { Loader, EmptyState } from '../components/ui';
-import { colors } from '../theme';
+import { colors, radius, space, shadow, statusStyle } from '../theme';
 
 const FLOW = ['pending', 'in-progress', 'ready', 'delivered'];
 const LABEL = { pending: 'En attente', 'in-progress': 'En cours', ready: 'Prêt', delivered: 'Livré' };
-const COLOR = { pending: '#f59e0b', 'in-progress': '#3b82f6', ready: '#22c55e', delivered: '#6b7280' };
+const COLOR = { pending: '#f59e0b', 'in-progress': '#3b82f6', ready: '#22c55e', delivered: '#94A3B8' };
 
 export function AtelierScreen() {
   const [orders, setOrders] = useState([]);
@@ -38,10 +38,12 @@ export function AtelierScreen() {
         const list = orders.filter((o) => o.status === st);
         return (
           <View key={st} style={styles.column}>
-            <View style={styles.colHeader}>
+            <View style={[styles.colHeader, { borderLeftColor: COLOR[st] }]}>
               <View style={[styles.dot, { backgroundColor: COLOR[st] }]} />
               <Text style={styles.colTitle}>{LABEL[st]}</Text>
-              <Text style={styles.count}>{list.length}</Text>
+              <View style={[styles.countBadge, { backgroundColor: COLOR[st] + '22' }]}>
+                <Text style={[styles.count, { color: COLOR[st] }]}>{list.length}</Text>
+              </View>
             </View>
             {list.length === 0 ? <Text style={styles.muted}>—</Text> : list.map((o) => (
               <View key={o.id} style={styles.card}>
@@ -66,15 +68,19 @@ export function AtelierScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  column: { marginHorizontal: 12, marginTop: 12 },
-  colHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  dot: { width: 10, height: 10, borderRadius: 5 },
-  colTitle: { fontSize: 15, fontWeight: '700', color: colors.text, flex: 1 },
-  count: { fontSize: 13, color: colors.muted },
-  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 12, borderRadius: 10, marginBottom: 6 },
-  num: { fontWeight: '700', color: colors.text },
+  column: { marginHorizontal: space.md, marginTop: space.md },
+  colHeader: {
+    flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8,
+    paddingLeft: 10, borderLeftWidth: 3, borderLeftColor: colors.teal,
+  },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  colTitle: { fontSize: 14, fontWeight: '700', color: colors.text, flex: 1 },
+  countBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: radius.full },
+  count: { fontSize: 12, fontWeight: '700' },
+  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 13, borderRadius: radius.md, marginBottom: 6, ...shadow.card },
+  num: { fontWeight: '700', color: colors.text, fontSize: 14 },
   sub: { color: colors.muted, fontSize: 13, marginTop: 2 },
-  advBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
-  advText: { color: '#fff', fontSize: 12, fontWeight: '600' },
-  muted: { color: colors.muted, marginBottom: 8 },
+  advBtn: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: radius.sm },
+  advText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  muted: { color: colors.mutedLight, marginBottom: 8, fontSize: 13 },
 });

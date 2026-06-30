@@ -20,7 +20,7 @@ export async function registerForPush() {
       name: 'default',
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#1e40af',
+      lightColor: '#1D9E75',
     });
   }
 

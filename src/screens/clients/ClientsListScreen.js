@@ -3,9 +3,11 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl } fr
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { clientsAPI } from '../../api/client';
-import { SearchBar, Fab, EmptyState, Loader } from '../../components/ui';
-import { colors } from '../../theme';
+import { SearchBar, Fab, EmptyState, Loader, Avatar } from '../../components/ui';
+import { colors, radius, space, shadow } from '../../theme';
 import { ClientFormModal } from './ClientFormModal';
+
+const AVATAR_COLORS = [colors.teal, colors.blue, colors.purple, colors.orange, colors.pink];
 
 export function ClientsListScreen({ navigation }) {
   const [clients, setClients] = useState([]);
@@ -38,16 +40,16 @@ export function ClientsListScreen({ navigation }) {
         data={filtered}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingBottom: 90 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={colors.teal} />}
         ListEmptyComponent={<EmptyState icon="people-outline" text="Aucun client" />}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('ClientDetail', { id: item.id })}>
-            <View style={styles.avatar}><Text style={styles.avatarText}>{(item.firstName?.[0] || '?').toUpperCase()}</Text></View>
+        renderItem={({ item, index }) => (
+          <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('ClientDetail', { id: item.id })} activeOpacity={0.75}>
+            <Avatar letter={item.firstName?.[0] || '?'} size={44} bg={AVATAR_COLORS[index % AVATAR_COLORS.length]} />
             <View style={{ flex: 1 }}>
               <Text style={styles.name}>{item.firstName} {item.lastName}</Text>
               {!!item.phone && <Text style={styles.sub}>{item.phone}</Text>}
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.muted} />
+            <Ionicons name="chevron-forward" size={18} color={colors.mutedLight} />
           </TouchableOpacity>
         )}
       />
@@ -59,9 +61,12 @@ export function ClientsListScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', marginHorizontal: 12, marginVertical: 4, padding: 14, borderRadius: 12, gap: 12 },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  card: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#fff', marginHorizontal: space.md, marginVertical: 4,
+    padding: 14, borderRadius: radius.md, gap: 12,
+    ...shadow.card,
+  },
   name: { fontSize: 15, fontWeight: '600', color: colors.text },
   sub: { fontSize: 13, color: colors.muted, marginTop: 2 },
 });

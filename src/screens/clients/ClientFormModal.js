@@ -3,7 +3,7 @@ import { Modal, View, Text, ScrollView, TouchableOpacity, StyleSheet, KeyboardAv
 import { Ionicons } from '@expo/vector-icons';
 import { clientsAPI } from '../../api/client';
 import { Field, PrimaryButton } from '../../components/ui';
-import { colors } from '../../theme';
+import { colors, radius, space, shadow } from '../../theme';
 
 export function ClientFormModal({ visible, onClose, onSaved, client }) {
   const isEdit = !!client;
@@ -32,17 +32,19 @@ export function ClientFormModal({ visible, onClose, onSaved, client }) {
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.overlay}>
         <View style={styles.sheet}>
+          <View style={styles.grabber} />
           <View style={styles.header}>
             <Text style={styles.title}>{isEdit ? 'Modifier le client' : 'Nouveau client'}</Text>
-            <TouchableOpacity onPress={onClose}><Ionicons name="close" size={24} color={colors.muted} /></TouchableOpacity>
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn}><Ionicons name="close" size={20} color={colors.muted} /></TouchableOpacity>
           </View>
-          <ScrollView>
-            <Field label="Prénom *" value={form.firstName} onChangeText={(v) => set('firstName', v)} />
-            <Field label="Nom" value={form.lastName} onChangeText={(v) => set('lastName', v)} />
-            <Field label="Téléphone" value={form.phone} onChangeText={(v) => set('phone', v)} keyboardType="phone-pad" />
-            <Field label="Email" value={form.email} onChangeText={(v) => set('email', v)} keyboardType="email-address" />
-            <Field label="Adresse" value={form.address} onChangeText={(v) => set('address', v)} multiline />
-            <PrimaryButton title={isEdit ? 'Enregistrer' : 'Créer'} onPress={save} loading={saving} />
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <Field label="Prénom *" value={form.firstName} onChangeText={(v) => set('firstName', v)} icon="person-outline" />
+            <Field label="Nom" value={form.lastName} onChangeText={(v) => set('lastName', v)} icon="person-outline" />
+            <Field label="Téléphone" value={form.phone} onChangeText={(v) => set('phone', v)} keyboardType="phone-pad" icon="call-outline" />
+            <Field label="Email" value={form.email} onChangeText={(v) => set('email', v)} keyboardType="email-address" icon="mail-outline" />
+            <Field label="Adresse" value={form.address} onChangeText={(v) => set('address', v)} multiline icon="location-outline" />
+            <PrimaryButton title={isEdit ? 'Enregistrer' : 'Créer'} onPress={save} loading={saving} icon={isEdit ? 'checkmark' : 'add'} />
+            <View style={{ height: 20 }} />
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
@@ -51,8 +53,10 @@ export function ClientFormModal({ visible, onClose, onSaved, client }) {
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: colors.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 16, maxHeight: '90%' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  title: { fontSize: 18, fontWeight: '700', color: colors.text },
+  overlay: { flex: 1, backgroundColor: 'rgba(11,27,58,0.5)', justifyContent: 'flex-end' },
+  sheet: { backgroundColor: '#fff', borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: space.lg, maxHeight: '90%', ...shadow.header },
+  grabber: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, alignSelf: 'center', marginBottom: 14 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  title: { fontSize: 17, fontWeight: '800', color: colors.text },
+  closeBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
 });
