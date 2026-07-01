@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { lensesAPI } from '../api/client';
 import { SearchBar, Fab, EmptyState, Loader, Field, PrimaryButton, ButtonRow } from '../components/ui';
 import { BarcodeScanner } from '../components/BarcodeScanner';
+import { useToast } from '../components/Toast';
 import { colors, radius, space, shadow } from '../theme';
 
 export function LensesScreen() {
@@ -55,7 +56,7 @@ export function LensesScreen() {
         keyExtractor={(i) => i.id}
         contentContainerStyle={{ paddingBottom: 90 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
-        ListEmptyComponent={<EmptyState icon="eye-outline" text="Aucun verre" />}
+        ListEmptyComponent={<EmptyState icon="eye-outline" title="Aucun verre" text="Ajoutez votre premier verre en stock" actionLabel="Ajouter" onAction={() => { setEditing({}); setScanPrefill(null); setModal(true); }} />}
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.card} onPress={() => { setEditing(item); setScanPrefill(null); setModal(true); }}>
             <View style={{ flex: 1 }}>
@@ -87,8 +88,10 @@ export function LensesScreen() {
 function LensModal({ visible, lens, prefillBarcode, onClose, onSaved }) {
   const isEdit = !!lens;
   const [form, setForm] = useState({ type: '', material: '', coating: '', treatment: '', price: '', stock: '', barcode: '' });
+  const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
+  const { showSuccess, showError } = useToast();
 
   useEffect(() => {
     if (!visible) return;
@@ -97,13 +100,19 @@ function LensModal({ visible, lens, prefillBarcode, onClose, onSaved }) {
     } else {
       setForm({ type: '', material: '', coating: '', treatment: '', price: '', stock: '', barcode: prefillBarcode || '' });
     }
+    setErrors({});
   }, [visible, lens, prefillBarcode]);
 
-  const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
+  const set = (k, v) => {
+    setForm((p) => ({ ...p, [k]: v }));
+    if (errors[k]) setErrors((p) => ({ ...p, [k]: null }));
+  };
 
   const save = async () => {
-    if (!form.type.trim()) { Alert.alert('Champ requis', 'Le type est requis'); return; }
-    if (!form.material.trim()) { Alert.alert('Champ requis', 'Le matériau est requis'); return; }
+    const e = {};
+    if (!form.type.trim()) e.type = 'Le type est requis';
+    if (!form.material.trim()) e.material = 'Le matériau est requis';
+    if (Object.keys(e).length) { setErrors(e); return; }
     setSaving(true);
     const payload = {
       type: form.type, material: form.material, coating: form.coating, treatment: form.treatment,
@@ -113,8 +122,9 @@ function LensModal({ visible, lens, prefillBarcode, onClose, onSaved }) {
     try {
       if (isEdit) await lensesAPI.updateLens(lens.id, payload);
       else await lensesAPI.createLens(payload);
+      showSuccess(isEdit ? 'Verre mis à jour' : 'Verre créé');
       onSaved();
-    } catch (e) { Alert.alert('Erreur', e.response?.data?.message || 'Erreur'); }
+    } catch (e) { showError(e.response?.data?.message || 'Erreur'); }
     finally { setSaving(false); }
   };
 
@@ -122,7 +132,8 @@ function LensModal({ visible, lens, prefillBarcode, onClose, onSaved }) {
     Alert.alert('Supprimer', 'Supprimer ce verre ?', [
       { text: 'Annuler', style: 'cancel' },
       { text: 'Supprimer', style: 'destructive', onPress: async () => {
-        try { await lensesAPI.deleteLens(lens.id); onSaved(); } catch (e) { Alert.alert('Erreur', e.response?.data?.message || 'Erreur'); }
+        try { await lensesAPI.deleteLens(lens.id); showSuccess('Verre supprimé'); onSaved(); }
+        catch (e) { showError(e.response?.data?.message || 'Erreur'); }
       } },
     ]);
   };
@@ -138,8 +149,8 @@ function LensModal({ visible, lens, prefillBarcode, onClose, onSaved }) {
               <TouchableOpacity onPress={onClose} style={m.closeBtn}><Ionicons name="close" size={20} color={colors.muted} /></TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Field label="Type *" value={form.type} onChangeText={(v) => set('type', v)} />
-              <Field label="Matériau *" value={form.material} onChangeText={(v) => set('material', v)} />
+              <Field label="Type *" value={form.type} onChangeText={(v) => set('type', v)} error={errors.type} />
+              <Field label="Matériau *" value={form.material} onChangeText={(v) => set('material', v)} error={errors.material} />
               <Field label="Traitement" value={form.coating} onChangeText={(v) => set('coating', v)} />
               <Field label="Traitement spécial" value={form.treatment} onChangeText={(v) => set('treatment', v)} />
               <Field label="Prix (MAD)" value={form.price} onChangeText={(v) => set('price', v)} keyboardType="numeric" />

@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } 
 import { useFocusEffect } from '@react-navigation/native';
 import { atelierAPI } from '../api/client';
 import { Loader, EmptyState } from '../components/ui';
+import { useToast } from '../components/Toast';
 import { colors, radius, space, shadow, statusStyle } from '../theme';
 
 const FLOW = ['pending', 'in-progress', 'ready', 'delivered'];
@@ -23,10 +24,16 @@ export function AtelierScreen() {
   }, []);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
+  const { showSuccess, showError } = useToast();
+
   const advance = async (order) => {
     const idx = FLOW.indexOf(order.status);
     if (idx < 0 || idx >= FLOW.length - 1) return;
-    try { await atelierAPI.updateStatus(order.id, FLOW[idx + 1]); load(); } catch { alert('Erreur'); }
+    try {
+      await atelierAPI.updateStatus(order.id, FLOW[idx + 1]);
+      showSuccess(`${order.orderNumber} → ${LABEL[FLOW[idx + 1]]}`);
+      load();
+    } catch { showError('Erreur'); }
   };
 
   if (loading) return <Loader />;

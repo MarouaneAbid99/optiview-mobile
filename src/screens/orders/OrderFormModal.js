@@ -3,6 +3,7 @@ import { Modal, View, Text, ScrollView, TouchableOpacity, StyleSheet, KeyboardAv
 import { Ionicons } from '@expo/vector-icons';
 import { atelierAPI, clientsAPI, eyewearAPI, lensesAPI } from '../../api/client';
 import { Field, PrimaryButton, ButtonRow } from '../../components/ui';
+import { useToast } from '../../components/Toast';
 import { colors, radius, space, shadow } from '../../theme';
 
 const TYPES = [
@@ -44,8 +45,15 @@ export function OrderFormModal({ visible, order, onClose, onSaved }) {
 
   const involvesStock = type === 'sale' || type === 'sale_montage';
   const involvesMontage = type === 'montage' || type === 'sale_montage';
+  const { showSuccess, showError } = useToast();
+  const [frameError, setFrameError] = useState(null);
+  const [lensError, setLensError] = useState(null);
 
   const save = async () => {
+    let valid = true;
+    if (involvesStock && !frameId) { setFrameError('Sélectionnez une monture'); valid = false; } else setFrameError(null);
+    if (involvesStock && !lensId)  { setLensError('Sélectionnez un verre');   valid = false; } else setLensError(null);
+    if (!valid) return;
     const payload = {
       orderType: type,
       clientId: clientId || null,
@@ -53,14 +61,13 @@ export function OrderFormModal({ visible, order, onClose, onSaved }) {
       items: involvesStock && lensId ? [{ lensId, quantity: 1 }] : [],
       laborPrice: involvesMontage ? (parseFloat(labor) || 0) : null,
     };
-    if (involvesStock && !frameId) { alert('Sélectionnez une monture'); return; }
-    if (involvesStock && !lensId) { alert('Sélectionnez un verre'); return; }
     setSaving(true);
     try {
       if (isEdit) await atelierAPI.updateOrder(order.id, payload);
       else await atelierAPI.createOrder(payload);
+      showSuccess(isEdit ? 'Commande mise à jour' : 'Commande créée');
       onSaved();
-    } catch (e) { alert(e.response?.data?.message || 'Erreur'); }
+    } catch (e) { showError(e.response?.data?.message || 'Erreur'); }
     finally { setSaving(false); }
   };
 
@@ -88,8 +95,8 @@ export function OrderFormModal({ visible, order, onClose, onSaved }) {
 
             {involvesStock && (
               <>
-                <Picker label="Monture" items={frames.map((f) => ({ id: f.id, label: `${f.brand} ${f.model} (${f.stock})` }))} value={frameId} onSelect={setFrameId} />
-                <Picker label="Verre" items={lenses.map((l) => ({ id: l.id, label: `${l.type} ${l.material} (${l.stock})` }))} value={lensId} onSelect={setLensId} />
+                <Picker label="Monture" items={frames.map((f) => ({ id: f.id, label: `${f.brand} ${f.model} (${f.stock})` }))} value={frameId} onSelect={(v) => { setFrameId(v); setFrameError(null); }} error={frameError} />
+                <Picker label="Verre" items={lenses.map((l) => ({ id: l.id, label: `${l.type} ${l.material} (${l.stock})` }))} value={lensId} onSelect={(v) => { setLensId(v); setLensError(null); }} error={lensError} />
               </>
             )}
 
@@ -108,16 +115,17 @@ export function OrderFormModal({ visible, order, onClose, onSaved }) {
   );
 }
 
-function Picker({ label, items, value, onSelect, allowNone }) {
+function Picker({ label, items, value, onSelect, allowNone, error }) {
   const [open, setOpen] = useState(false);
   const selected = items.find((i) => i.id === value);
   return (
     <View style={{ marginBottom: 12 }}>
-      <Text style={s.label}>{label}</Text>
-      <TouchableOpacity style={s.pickerBox} onPress={() => setOpen((o) => !o)}>
+      <Text style={[s.label, error && { color: colors.red }]}>{label}</Text>
+      <TouchableOpacity style={[s.pickerBox, error && { borderColor: colors.red }]} onPress={() => setOpen((o) => !o)}>
         <Text style={{ color: selected ? colors.text : colors.mutedLight, fontSize: 14 }}>{selected ? selected.label : 'Sélectionner...'}</Text>
         <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={18} color={colors.muted} />
       </TouchableOpacity>
+      {error && <Text style={{ fontSize: 12, color: colors.red, marginTop: 4, marginLeft: 2 }}>{error}</Text>}
       {open && (
         <View style={s.pickerList}>
           {allowNone && (

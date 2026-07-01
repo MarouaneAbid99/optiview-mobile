@@ -6,6 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { clientsAPI } from '../../api/client';
 import { uploadToCloudinary } from '../../api/upload';
 import { Loader, PrimaryButton, Avatar, Badge } from '../../components/ui';
+import { useToast } from '../../components/Toast';
 import { colors, radius, space, shadow, statusStyle } from '../../theme';
 import { ClientFormModal } from './ClientFormModal';
 
@@ -25,12 +26,14 @@ export function ClientDetailScreen({ route, navigation }) {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
+  const { showError } = useToast();
+
   const remove = () => {
     Alert.alert('Supprimer', 'Supprimer ce client ?', [
       { text: 'Annuler', style: 'cancel' },
       { text: 'Supprimer', style: 'destructive', onPress: async () => {
         try { await clientsAPI.deleteClient(id); navigation.goBack(); }
-        catch (e) { Alert.alert('Erreur', e.response?.data?.message || 'Erreur'); }
+        catch (e) { showError(e.response?.data?.message || 'Erreur'); }
       } },
     ]);
   };
@@ -61,7 +64,7 @@ export function ClientDetailScreen({ route, navigation }) {
       await clientsAPI.createPrescription(client.id, { imageUrl: url, dateIssued: new Date().toISOString() });
       await load();
     } catch (e) {
-      alert('Échec du téléversement');
+      showError('Échec du téléversement');
     } finally {
       setUploading(false);
     }

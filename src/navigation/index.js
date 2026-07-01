@@ -1,10 +1,13 @@
+import { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { ActivityIndicator, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme';
+import { OnboardingScreen } from '../screens/OnboardingScreen';
 
 import { LoginScreen } from '../screens/LoginScreen';
 import { SignupScreen } from '../screens/SignupScreen';
@@ -70,9 +73,18 @@ function MainTabs() {
 
 export function RootNavigator() {
   const { user, loading } = useAuth();
+  const [onboarded, setOnboarded] = useState(null);
 
-  if (loading) {
+  useEffect(() => {
+    AsyncStorage.getItem('optiview_onboarded').then((v) => setOnboarded(v === '1'));
+  }, []);
+
+  if (loading || onboarded === null) {
     return <View style={{ flex: 1, justifyContent: 'center', backgroundColor: colors.navy }}><ActivityIndicator size="large" color={colors.teal} /></View>;
+  }
+
+  if (!onboarded && !user) {
+    return <OnboardingScreen onDone={() => setOnboarded(true)} />;
   }
 
   return (

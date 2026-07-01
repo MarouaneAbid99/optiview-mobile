@@ -3,6 +3,7 @@ import { Modal, View, Text, ScrollView, TouchableOpacity, StyleSheet, KeyboardAv
 import { Ionicons } from '@expo/vector-icons';
 import { usersAPI } from '../api/client';
 import { Field, ButtonRow } from '../components/ui';
+import { useToast } from '../components/Toast';
 import { colors, radius, space, shadow } from '../theme';
 
 export function SettingsModal({ visible, onClose }) {
@@ -20,12 +21,13 @@ export function SettingsModal({ visible, onClose }) {
     })();
   }, [visible]);
 
+  const { showSuccess, showError } = useToast();
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
   const save = async () => {
     setSaving(true);
-    try { await usersAPI.updateMyShop(form); onClose(); }
-    catch (e) { alert(e.response?.data?.message || 'Erreur'); }
+    try { await usersAPI.updateMyShop(form); showSuccess('Paramètres sauvegardés'); onClose(); }
+    catch (e) { showError(e.response?.data?.message || 'Erreur'); }
     finally { setSaving(false); }
   };
 

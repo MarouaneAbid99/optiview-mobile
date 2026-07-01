@@ -4,6 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { atelierAPI } from '../api/client';
 import { SearchBar, Fab, EmptyState, Loader } from '../components/ui';
+import { useToast } from '../components/Toast';
 import { colors, radius, space, shadow, statusStyle } from '../theme';
 import { OrderFormModal } from './orders/OrderFormModal';
 
@@ -21,6 +22,7 @@ export function OrdersContent() {
   const [expanded, setExpanded] = useState(null);
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
+  const { showError } = useToast();
 
   const load = useCallback(async () => {
     try { const res = await atelierAPI.getOrders(); setOrders(res.data || []); }
@@ -30,11 +32,11 @@ export function OrdersContent() {
 
   const changeStatus = async (order, status) => {
     try { await atelierAPI.updateStatus(order.id, status); load(); }
-    catch (e) { alert(e.response?.data?.message || 'Erreur'); }
+    catch (e) { showError(e.response?.data?.message || 'Erreur'); }
   };
 
   const whatsapp = (order) => {
-    if (!order.client?.phone) { alert('Pas de numéro'); return; }
+    if (!order.client?.phone) return;
     let d = order.client.phone.replace(/\D/g, '');
     if (d.startsWith('0')) d = '212' + d.slice(1);
     const msg = `Bonjour ${order.client.firstName}, votre commande ${order.orderNumber} est prête.`;
@@ -43,7 +45,10 @@ export function OrdersContent() {
 
   const remove = (order) => Alert.alert('Supprimer', `Supprimer ${order.orderNumber} ?`, [
     { text: 'Annuler', style: 'cancel' },
-    { text: 'Supprimer', style: 'destructive', onPress: async () => { try { await atelierAPI.deleteOrder(order.id); load(); } catch { alert('Erreur'); } } },
+    { text: 'Supprimer', style: 'destructive', onPress: async () => {
+      try { await atelierAPI.deleteOrder(order.id); load(); }
+      catch { showError('Erreur lors de la suppression'); }
+    } },
   ]);
 
   const filtered = orders.filter((o) => {
@@ -78,7 +83,7 @@ export function OrdersContent() {
         keyExtractor={(i) => i.id}
         contentContainerStyle={{ paddingBottom: 90, paddingTop: 4 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={colors.teal} />}
-        ListEmptyComponent={<EmptyState icon="receipt-outline" text="Aucune commande" />}
+        ListEmptyComponent={<EmptyState icon="receipt-outline" title="Aucune commande" text="Créez votre première commande" actionLabel="Nouvelle commande" onAction={() => { setEditing(null); setModal(true); }} />}
         renderItem={({ item }) => {
           const open = expanded === item.id;
           return (

@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { clientsAPI, eyewearAPI, lensesAPI, atelierAPI } from '../api/client';
@@ -10,16 +11,19 @@ import { colors, moduleColor, shadow } from '../theme';
 import { OrderFormModal } from './orders/OrderFormModal';
 import { OrdersContent } from './OrdersScreen';
 import { SettingsModal } from './SettingsModal';
+import { GlobalSearchModal } from './GlobalSearchModal';
 
 export function DeskScreen() {
   const { user, logout } = useAuth();
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   const [tab, setTab] = useState('overview');
   const [stats, setStats] = useState({ clients: 0, frames: 0, lenses: 0, activeOrders: 0, revenue: 0 });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [newOrder, setNewOrder] = useState(false);
   const [settings, setSettings] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -39,6 +43,14 @@ export function DeskScreen() {
 
   const fmtK = (n) => n >= 1000 ? (n / 1000).toFixed(1).replace('.0', '') + 'K' : String(n);
 
+  const handleNavigate = (key, item) => {
+    if (key === 'clients') {
+      navigation.navigate('Clients', { screen: 'ClientDetail', params: { id: item.id } });
+    } else if (key === 'orders') {
+      setTab('orders');
+    }
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       {/* Navy header */}
@@ -48,6 +60,9 @@ export function DeskScreen() {
           <Text style={styles.name}>{user?.name}</Text>
         </View>
         <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity style={styles.hIcon} onPress={() => setSearchOpen(true)}>
+            <Ionicons name="search-outline" size={18} color={colors.navyText} />
+          </TouchableOpacity>
           {user?.role === 'OPTICIAN' && (
             <TouchableOpacity style={styles.hIcon} onPress={() => setSettings(true)}>
               <Ionicons name="settings-outline" size={18} color={colors.navyText} />
@@ -105,6 +120,7 @@ export function DeskScreen() {
 
       <OrderFormModal visible={newOrder} order={null} onClose={() => setNewOrder(false)} onSaved={() => { setNewOrder(false); load(); }} />
       <SettingsModal visible={settings} onClose={() => setSettings(false)} />
+      <GlobalSearchModal visible={searchOpen} onClose={() => setSearchOpen(false)} onNavigate={handleNavigate} />
     </View>
   );
 }

@@ -41,7 +41,7 @@ export function ClientsListScreen({ navigation }) {
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingBottom: 90 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={colors.teal} />}
-        ListEmptyComponent={<EmptyState icon="people-outline" text="Aucun client" />}
+        ListEmptyComponent={<EmptyState icon="people-outline" title="Aucun client" text="Ajoutez votre premier client" actionLabel="Nouveau client" onAction={() => setModal(true)} />}
         renderItem={({ item, index }) => (
           <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('ClientDetail', { id: item.id })} activeOpacity={0.75}>
             <Avatar letter={item.firstName?.[0] || '?'} size={44} bg={AVATAR_COLORS[index % AVATAR_COLORS.length]} />

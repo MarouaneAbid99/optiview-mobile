@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { eyewearAPI } from '../api/client';
 import { SearchBar, Fab, EmptyState, Loader, Field, PrimaryButton, ButtonRow } from '../components/ui';
 import { BarcodeScanner } from '../components/BarcodeScanner';
+import { useToast } from '../components/Toast';
 import { colors, radius, space, shadow } from '../theme';
 
 export function EyewearScreen() {
@@ -55,7 +56,7 @@ export function EyewearScreen() {
         keyExtractor={(i) => i.id}
         contentContainerStyle={{ paddingBottom: 90 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
-        ListEmptyComponent={<EmptyState icon="glasses-outline" text="Aucune monture" />}
+        ListEmptyComponent={<EmptyState icon="glasses-outline" title="Aucune monture" text="Ajoutez votre premier article en stock" actionLabel="Ajouter" onAction={() => { setEditing({}); setScanPrefill(null); setModal(true); }} />}
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.card} onPress={() => { setEditing(item); setScanPrefill(null); setModal(true); }}>
             <View style={{ flex: 1 }}>
@@ -99,12 +100,20 @@ function FrameModal({ visible, frame, prefillBarcode, onClose, onSaved }) {
     }
   }, [visible, frame, prefillBarcode]);
 
-  const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
+  const { showSuccess, showError } = useToast();
+  const [errors, setErrors] = useState({});
+
+  const set = (k, v) => {
+    setForm((p) => ({ ...p, [k]: v }));
+    if (errors[k]) setErrors((p) => ({ ...p, [k]: null }));
+  };
 
   const save = async () => {
-    if (!form.brand.trim()) { Alert.alert('Champ requis', 'La marque est requise'); return; }
-    if (!form.model.trim()) { Alert.alert('Champ requis', 'Le modèle est requis'); return; }
-    if (!form.category.trim()) { Alert.alert('Champ requis', 'La catégorie est requise'); return; }
+    const e = {};
+    if (!form.brand.trim()) e.brand = 'La marque est requise';
+    if (!form.model.trim()) e.model = 'Le modèle est requis';
+    if (!form.category.trim()) e.category = 'La catégorie est requise';
+    if (Object.keys(e).length) { setErrors(e); return; }
     setSaving(true);
     const payload = {
       brand: form.brand, model: form.model, category: form.category, color: form.color,
@@ -114,8 +123,9 @@ function FrameModal({ visible, frame, prefillBarcode, onClose, onSaved }) {
     try {
       if (isEdit) await eyewearAPI.updateFrame(frame.id, payload);
       else await eyewearAPI.createFrame(payload);
+      showSuccess(isEdit ? 'Monture mise à jour' : 'Monture créée');
       onSaved();
-    } catch (e) { Alert.alert('Erreur', e.response?.data?.message || 'Erreur'); }
+    } catch (e) { showError(e.response?.data?.message || 'Erreur'); }
     finally { setSaving(false); }
   };
 
@@ -123,7 +133,8 @@ function FrameModal({ visible, frame, prefillBarcode, onClose, onSaved }) {
     Alert.alert('Supprimer', 'Supprimer cette monture ?', [
       { text: 'Annuler', style: 'cancel' },
       { text: 'Supprimer', style: 'destructive', onPress: async () => {
-        try { await eyewearAPI.deleteFrame(frame.id); onSaved(); } catch (e) { Alert.alert('Erreur', e.response?.data?.message || 'Erreur'); }
+        try { await eyewearAPI.deleteFrame(frame.id); showSuccess('Monture supprimée'); onSaved(); }
+        catch (e) { showError(e.response?.data?.message || 'Erreur'); }
       } },
     ]);
   };
@@ -139,9 +150,9 @@ function FrameModal({ visible, frame, prefillBarcode, onClose, onSaved }) {
               <TouchableOpacity onPress={onClose} style={m.closeBtn}><Ionicons name="close" size={20} color={colors.muted} /></TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Field label="Marque *" value={form.brand} onChangeText={(v) => set('brand', v)} />
-              <Field label="Modèle *" value={form.model} onChangeText={(v) => set('model', v)} />
-              <Field label="Catégorie *" value={form.category} onChangeText={(v) => set('category', v)} />
+              <Field label="Marque *" value={form.brand} onChangeText={(v) => set('brand', v)} error={errors.brand} />
+              <Field label="Modèle *" value={form.model} onChangeText={(v) => set('model', v)} error={errors.model} />
+              <Field label="Catégorie *" value={form.category} onChangeText={(v) => set('category', v)} error={errors.category} />
               <Field label="Couleur" value={form.color} onChangeText={(v) => set('color', v)} />
               <Field label="Prix (MAD)" value={form.price} onChangeText={(v) => set('price', v)} keyboardType="numeric" />
               <Field label="Stock" value={form.stock} onChangeText={(v) => set('stock', v)} keyboardType="numeric" />

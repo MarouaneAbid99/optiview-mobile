@@ -3,28 +3,44 @@ import { Modal, View, Text, ScrollView, TouchableOpacity, StyleSheet, KeyboardAv
 import { Ionicons } from '@expo/vector-icons';
 import { clientsAPI } from '../../api/client';
 import { Field, ButtonRow } from '../../components/ui';
+import { useToast } from '../../components/Toast';
 import { colors, radius, space, shadow } from '../../theme';
 
 export function ClientFormModal({ visible, onClose, onSaved, client }) {
   const isEdit = !!client;
   const [form, setForm] = useState({ firstName: '', lastName: '', phone: '', email: '', address: '' });
+  const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const { showSuccess, showError } = useToast();
 
   useEffect(() => {
     if (client) setForm({ firstName: client.firstName || '', lastName: client.lastName || '', phone: client.phone || '', email: client.email || '', address: client.address || '' });
     else setForm({ firstName: '', lastName: '', phone: '', email: '', address: '' });
+    setErrors({});
   }, [client, visible]);
 
-  const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
+  const set = (k, v) => {
+    setForm((p) => ({ ...p, [k]: v }));
+    if (errors[k]) setErrors((p) => ({ ...p, [k]: null }));
+  };
+
+  const validate = () => {
+    const e = {};
+    if (!form.firstName.trim()) e.firstName = 'Le prénom est requis';
+    if (form.phone && !/^[0-9+\s\-()]{6,}$/.test(form.phone.trim())) e.phone = 'Numéro invalide';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
 
   const save = async () => {
-    if (!form.firstName.trim()) { Alert.alert('Champ requis', 'Le prénom est requis'); return; }
+    if (!validate()) return;
     setSaving(true);
     try {
       if (isEdit) await clientsAPI.updateClient(client.id, form);
       else await clientsAPI.createClient(form);
+      showSuccess(isEdit ? 'Client mis à jour' : 'Client créé');
       onSaved();
-    } catch (e) { Alert.alert('Erreur', e.response?.data?.message || 'Erreur'); }
+    } catch (e) { showError(e.response?.data?.message || 'Erreur lors de la sauvegarde'); }
     finally { setSaving(false); }
   };
 
@@ -38,9 +54,9 @@ export function ClientFormModal({ visible, onClose, onSaved, client }) {
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}><Ionicons name="close" size={20} color={colors.muted} /></TouchableOpacity>
           </View>
           <ScrollView showsVerticalScrollIndicator={false}>
-            <Field label="Prénom *" value={form.firstName} onChangeText={(v) => set('firstName', v)} icon="person-outline" />
+            <Field label="Prénom *" value={form.firstName} onChangeText={(v) => set('firstName', v)} icon="person-outline" error={errors.firstName} />
             <Field label="Nom" value={form.lastName} onChangeText={(v) => set('lastName', v)} icon="person-outline" />
-            <Field label="Téléphone" value={form.phone} onChangeText={(v) => set('phone', v)} keyboardType="phone-pad" icon="call-outline" />
+            <Field label="Téléphone" value={form.phone} onChangeText={(v) => set('phone', v)} keyboardType="phone-pad" icon="call-outline" error={errors.phone} />
             <Field label="Email" value={form.email} onChangeText={(v) => set('email', v)} keyboardType="email-address" icon="mail-outline" />
             <Field label="Adresse" value={form.address} onChangeText={(v) => set('address', v)} multiline icon="location-outline" />
             <ButtonRow
