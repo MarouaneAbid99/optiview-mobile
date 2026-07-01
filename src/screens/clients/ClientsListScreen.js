@@ -2,7 +2,6 @@ import { useState, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
 import { clientsAPI } from '../../api/client';
 import { SearchBar, Fab, EmptyState, Avatar } from '../../components/ui';
 import { SkeletonList } from '../../components/Skeleton';
