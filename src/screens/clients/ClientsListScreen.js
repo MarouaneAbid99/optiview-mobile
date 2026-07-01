@@ -1,9 +1,12 @@
 import { useState, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { clientsAPI } from '../../api/client';
-import { SearchBar, Fab, EmptyState, Loader, Avatar } from '../../components/ui';
+import { SearchBar, Fab, EmptyState, Avatar } from '../../components/ui';
+import { SkeletonList } from '../../components/Skeleton';
+import { FilterSheet } from '../../components/FilterSheet';
 import { colors, radius, space, shadow } from '../../theme';
 import { ClientFormModal } from './ClientFormModal';
 
@@ -15,6 +18,14 @@ export function ClientsListScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [modal, setModal] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filters, setFilters] = useState({ sort: 'name' });
+
+  const filterGroups = [
+    { key: 'sort', label: 'Trier par', options: [
+      { value: 'name', label: 'Nom' }, { value: 'recent', label: 'Récent' }, { value: 'orders', label: 'Nb commandes' },
+    ]},
+  ];
 
   const load = useCallback(async () => {
     try {
@@ -26,16 +37,31 @@ export function ClientsListScreen({ navigation }) {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  const filtered = clients.filter((c) => {
-    const q = search.toLowerCase();
-    return `${c.firstName} ${c.lastName}`.toLowerCase().includes(q) || (c.phone || '').includes(q);
-  });
+  const filtered = (() => {
+    let r = clients.filter((c) => {
+      const q = search.toLowerCase();
+      return `${c.firstName} ${c.lastName}`.toLowerCase().includes(q) || (c.phone || '').includes(q);
+    });
+    if (filters.sort === 'name') r.sort((a, b) => `${a.firstName}`.localeCompare(`${b.firstName}`));
+    else if (filters.sort === 'recent') r.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    else if (filters.sort === 'orders') r.sort((a, b) => (b.orders?.length || 0) - (a.orders?.length || 0));
+    return r;
+  })();
 
-  if (loading) return <Loader />;
+  if (loading) return <View style={{ flex: 1, backgroundColor: colors.bg }}><SkeletonList /></View>;
 
   return (
     <View style={styles.container}>
-      <SearchBar value={search} onChangeText={setSearch} placeholder="Nom ou téléphone..." />
+      <View style={styles.searchRow}>
+        <View style={{ flex: 1 }}>
+          <SearchBar value={search} onChangeText={setSearch} placeholder="Nom ou téléphone..." />
+        </View>
+        <TouchableOpacity style={[styles.iconBtn, { marginRight: 16 }]} onPress={() => setFilterOpen(true)}>
+          <Ionicons name="options-outline" size={20} color={colors.navy} />
+        </TouchableOpacity>
+      </View>
+      <FilterSheet visible={filterOpen} onClose={() => setFilterOpen(false)} groups={filterGroups} value={filters}
+        onChange={(k, v) => setFilters((p) => ({ ...p, [k]: v }))} onReset={() => setFilters({ sort: 'name' })} />
       <FlatList
         data={filtered}
         keyExtractor={(item) => item.id}
@@ -61,6 +87,8 @@ export function ClientsListScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  iconBtn: { width: 46, height: 46, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, ...shadow.card },
   card: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#fff', marginHorizontal: 16, marginVertical: 6,

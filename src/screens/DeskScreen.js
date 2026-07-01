@@ -6,7 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { clientsAPI, eyewearAPI, lensesAPI, atelierAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { Loader, SectionLabel, PrimaryButton } from '../components/ui';
+import { SectionLabel, PrimaryButton } from '../components/ui';
+import { SkeletonStats } from '../components/Skeleton';
 import { colors, moduleColor, shadow } from '../theme';
 import { OrderFormModal } from './orders/OrderFormModal';
 import { OrdersContent } from './OrdersScreen';
@@ -19,6 +20,7 @@ export function DeskScreen() {
   const navigation = useNavigation();
   const [tab, setTab] = useState('overview');
   const [stats, setStats] = useState({ clients: 0, frames: 0, lenses: 0, activeOrders: 0, revenue: 0 });
+  const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [newOrder, setNewOrder] = useState(false);
@@ -34,9 +36,12 @@ export function DeskScreen() {
         atelierAPI.getOrders().catch(() => ({ data: [] })),
       ]);
       const orders = o.data || [];
+      const frames = f.data || [];
+      const lenses = l.data || [];
       const active = orders.filter((x) => !['delivered', 'cancelled'].includes(x.status)).length;
       const revenue = orders.filter((x) => x.status === 'delivered').reduce((s, x) => s + (x.totalPrice || 0), 0);
-      setStats({ clients: (c.data || []).length, frames: (f.data || []).length, lenses: (l.data || []).length, activeOrders: active, revenue });
+      setStats({ clients: (c.data || []).length, frames: frames.length, lenses: lenses.length, activeOrders: active, revenue });
+      setActivity(buildActivity(orders, frames, lenses));
     } catch (e) { console.error(e); } finally { setLoading(false); setRefreshing(false); }
   }, []);
   useFocusEffect(useCallback(() => { load(); }, [load]));
@@ -85,35 +90,55 @@ export function DeskScreen() {
       </View>
 
       {tab === 'overview' ? (
-        loading ? <Loader /> : (
-          <ScrollView
-            contentContainerStyle={{ paddingBottom: 32 }}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={colors.teal} />}
-          >
-            <SectionLabel>Statistiques</SectionLabel>
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: 32 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={colors.teal} />}
+        >
+          <SectionLabel>Statistiques</SectionLabel>
+          {loading ? <SkeletonStats /> : (
             <View style={styles.grid}>
               <StatCard icon="people" label="Clients" value={stats.clients} soft={moduleColor.clients.soft} fg={moduleColor.clients.fg} trend />
               <StatCard icon="cash" label="CA livré · MAD" value={fmtK(Math.round(stats.revenue))} soft={moduleColor.desk.soft} fg={moduleColor.desk.fg} />
               <StatCard icon="glasses" label="Montures" value={stats.frames} soft={moduleColor.eyewear.soft} fg={moduleColor.eyewear.fg} />
               <StatCard icon="eye" label="Verres" value={stats.lenses} soft={moduleColor.lenses.soft} fg={moduleColor.lenses.fg} />
             </View>
+          )}
 
-            <SectionLabel>Actions</SectionLabel>
-            <View style={{ paddingHorizontal: 16 }}>
-              <PrimaryButton title="Nouvelle commande" icon="add" onPress={() => setNewOrder(true)} />
-            </View>
+          <SectionLabel>Actions</SectionLabel>
+          <View style={{ paddingHorizontal: 16 }}>
+            <PrimaryButton title="Nouvelle commande" icon="add" onPress={() => setNewOrder(true)} />
+          </View>
 
-            <View style={{ marginTop: 12, paddingHorizontal: 16 }}>
-              <View style={styles.activeRow}>
-                <View>
-                  <Text style={styles.activeLabel}>Commandes actives</Text>
-                  <Text style={styles.activeHint}>En attente · En cours · Prêt</Text>
-                </View>
-                <Text style={styles.activeValue}>{stats.activeOrders}</Text>
+          <View style={{ marginTop: 12, paddingHorizontal: 16 }}>
+            <View style={styles.activeRow}>
+              <View>
+                <Text style={styles.activeLabel}>Commandes actives</Text>
+                <Text style={styles.activeHint}>En attente · En cours · Prêt</Text>
               </View>
+              <Text style={styles.activeValue}>{stats.activeOrders}</Text>
             </View>
-          </ScrollView>
-        )
+          </View>
+
+          <SectionLabel>Activité récente</SectionLabel>
+          {activity.length === 0 ? (
+            <Text style={{ color: colors.muted, marginHorizontal: 18, fontSize: 14 }}>Aucune activité récente</Text>
+          ) : (
+            <View style={{ paddingHorizontal: 16, gap: 8 }}>
+              {activity.map((a) => (
+                <View key={a.id} style={styles.activityItem}>
+                  <View style={[styles.activityIcon, { backgroundColor: a.soft }]}>
+                    <Ionicons name={a.icon} size={17} color={a.color} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.activityTitle}>{a.title}</Text>
+                    <Text style={styles.activitySub}>{a.sub}</Text>
+                  </View>
+                  <Text style={styles.activityTime}>{timeAgo(a.date)}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </ScrollView>
       ) : (
         <OrdersContent />
       )}
@@ -123,6 +148,44 @@ export function DeskScreen() {
       <GlobalSearchModal visible={searchOpen} onClose={() => setSearchOpen(false)} onNavigate={handleNavigate} />
     </View>
   );
+}
+
+function timeAgo(d) {
+  const diff = (Date.now() - new Date(d).getTime()) / 1000;
+  if (diff < 60) return "à l'instant";
+  if (diff < 3600) return `${Math.floor(diff / 60)} min`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} h`;
+  return `${Math.floor(diff / 86400)} j`;
+}
+
+function buildActivity(orders, frames, lenses) {
+  const items = [];
+  orders.forEach((o) => {
+    items.push({
+      id: 'o-' + o.id,
+      icon: 'receipt',
+      color: colors.blue,
+      soft: 'rgba(59,130,246,0.12)',
+      title: `Commande ${o.orderNumber}`,
+      sub: `${o.client ? o.client.firstName : 'Passage'} · ${o.totalPrice} MAD`,
+      date: o.createdAt,
+    });
+  });
+  [...frames, ...lenses].filter((p) => (p.stock ?? 0) <= 2).slice(0, 5).forEach((p) => {
+    items.push({
+      id: 's-' + p.id,
+      icon: 'alert-circle',
+      color: colors.orange,
+      soft: 'rgba(249,115,22,0.12)',
+      title: 'Stock faible',
+      sub: `${p.brand ? `${p.brand} ${p.model}` : `${p.type} ${p.material}`} · ${p.stock} restant`,
+      date: p.updatedAt || p.createdAt,
+    });
+  });
+  return items
+    .filter((i) => i.date)
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 8);
 }
 
 function StatCard({ icon, label, value, soft, fg, trend }) {
@@ -187,4 +250,9 @@ const styles = StyleSheet.create({
   activeLabel: { fontSize: 14, fontWeight: '600', color: colors.text },
   activeHint: { fontSize: 12, color: colors.textSec, marginTop: 2 },
   activeValue: { fontSize: 28, fontWeight: '700', color: colors.primary },
+  activityItem: { flexDirection: 'row', alignItems: 'center', gap: 11, backgroundColor: colors.card, borderWidth: 0.5, borderColor: colors.border, borderRadius: 12, padding: 12 },
+  activityIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  activityTitle: { fontSize: 14, fontWeight: '600', color: colors.text },
+  activitySub: { fontSize: 12, color: colors.textSec, marginTop: 2 },
+  activityTime: { fontSize: 11, color: colors.muted },
 });

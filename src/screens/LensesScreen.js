@@ -3,9 +3,11 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, Mod
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { lensesAPI } from '../api/client';
-import { SearchBar, Fab, EmptyState, Loader, Field, PrimaryButton, ButtonRow } from '../components/ui';
+import { SearchBar, Fab, EmptyState, Field, PrimaryButton, ButtonRow } from '../components/ui';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { useToast } from '../components/Toast';
+import { SkeletonList } from '../components/Skeleton';
+import { FilterSheet } from '../components/FilterSheet';
 import { colors, radius, space, shadow } from '../theme';
 
 export function LensesScreen() {
@@ -17,6 +19,29 @@ export function LensesScreen() {
   const [modal, setModal] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scanPrefill, setScanPrefill] = useState(null);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filters, setFilters] = useState({ stock: 'all', sort: 'name' });
+
+  const filterGroups = [
+    { key: 'stock', label: 'Stock', options: [
+      { value: 'all', label: 'Tous' }, { value: 'low', label: 'Faible (≤2)' }, { value: 'in', label: 'En stock' }, { value: 'out', label: 'Rupture' },
+    ]},
+    { key: 'sort', label: 'Trier par', options: [
+      { value: 'name', label: 'Type' }, { value: 'price_asc', label: 'Prix ↑' }, { value: 'price_desc', label: 'Prix ↓' }, { value: 'stock_desc', label: 'Stock ↓' },
+    ]},
+  ];
+
+  const applyFilters = (list) => {
+    let r = [...list];
+    if (filters.stock === 'low') r = r.filter((l) => l.stock <= 2 && l.stock > 0);
+    else if (filters.stock === 'in') r = r.filter((l) => l.stock > 0);
+    else if (filters.stock === 'out') r = r.filter((l) => l.stock === 0);
+    if (filters.sort === 'name') r.sort((a, b) => `${a.type}`.localeCompare(`${b.type}`));
+    else if (filters.sort === 'price_asc') r.sort((a, b) => a.price - b.price);
+    else if (filters.sort === 'price_desc') r.sort((a, b) => b.price - a.price);
+    else if (filters.sort === 'stock_desc') r.sort((a, b) => b.stock - a.stock);
+    return r;
+  };
 
   const load = useCallback(async () => {
     try { const res = await lensesAPI.getLenses(); setLenses(res.data || []); }
@@ -37,9 +62,10 @@ export function LensesScreen() {
     else { setEditing({}); setScanPrefill(code); setModal(true); }
   };
 
-  const filtered = lenses.filter((l) => `${l.type} ${l.material}`.toLowerCase().includes(search.toLowerCase()));
+  const filtered = applyFilters(lenses.filter((l) => `${l.type} ${l.material}`.toLowerCase().includes(search.toLowerCase())));
+  const filterActive = filters.stock !== 'all';
 
-  if (loading) return <Loader />;
+  if (loading) return <View style={{ flex: 1, backgroundColor: colors.bg }}><SkeletonList /></View>;
 
   return (
     <View style={styles.container}>
@@ -47,10 +73,16 @@ export function LensesScreen() {
         <View style={{ flex: 1 }}>
           <SearchBar value={search} onChangeText={setSearch} placeholder="Type ou matériau..." />
         </View>
-        <TouchableOpacity style={styles.scanBtn} onPress={() => setScannerOpen(true)}>
-          <Ionicons name="barcode-outline" size={22} color={colors.teal} />
+        <TouchableOpacity style={styles.iconBtn} onPress={() => setFilterOpen(true)}>
+          <Ionicons name="options-outline" size={20} color={colors.navy} />
+          {filterActive && <View style={styles.filterDot} />}
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.iconBtn, { marginRight: 16 }]} onPress={() => setScannerOpen(true)}>
+          <Ionicons name="barcode-outline" size={20} color={colors.navy} />
         </TouchableOpacity>
       </View>
+      <FilterSheet visible={filterOpen} onClose={() => setFilterOpen(false)} groups={filterGroups} value={filters}
+        onChange={(k, v) => setFilters((p) => ({ ...p, [k]: v }))} onReset={() => setFilters({ stock: 'all', sort: 'name' })} />
       <FlatList
         data={filtered}
         keyExtractor={(i) => i.id}
@@ -181,8 +213,9 @@ function LensModal({ visible, lens, prefillBarcode, onClose, onSaved }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  searchRow: { flexDirection: 'row', alignItems: 'center', paddingRight: 12 },
-  scanBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, ...shadow.card },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingRight: 8 },
+  iconBtn: { width: 46, height: 46, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, ...shadow.card },
+  filterDot: { position: 'absolute', top: 6, right: 6, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.teal },
   card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', marginHorizontal: 16, marginVertical: 6, padding: 16, borderRadius: 16, borderWidth: 0.5, borderColor: colors.border, ...shadow.card },
   name: { fontSize: 15, fontWeight: '600', color: colors.text },
   sub: { fontSize: 13, color: colors.muted, marginTop: 3 },

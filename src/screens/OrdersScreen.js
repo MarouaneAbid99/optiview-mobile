@@ -3,8 +3,10 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, Lin
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { atelierAPI } from '../api/client';
-import { SearchBar, Fab, EmptyState, Loader } from '../components/ui';
+import { SearchBar, Fab, EmptyState } from '../components/ui';
 import { useToast } from '../components/Toast';
+import { SkeletonList } from '../components/Skeleton';
+import { FilterSheet } from '../components/FilterSheet';
 import { colors, radius, space, shadow, statusStyle } from '../theme';
 import { OrderFormModal } from './orders/OrderFormModal';
 
@@ -22,7 +24,22 @@ export function OrdersContent() {
   const [expanded, setExpanded] = useState(null);
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filters, setFilters] = useState({ status: 'all', type: 'all', sort: 'recent' });
   const { showError } = useToast();
+
+  const filterGroups = [
+    { key: 'status', label: 'Statut', options: [
+      { value: 'all', label: 'Tous' }, { value: 'pending', label: 'En attente' }, { value: 'in-progress', label: 'En cours' },
+      { value: 'ready', label: 'Prêt' }, { value: 'delivered', label: 'Livré' }, { value: 'cancelled', label: 'Annulé' },
+    ]},
+    { key: 'type', label: 'Type', options: [
+      { value: 'all', label: 'Tous' }, { value: 'sale', label: 'Vente' }, { value: 'montage', label: 'Montage' }, { value: 'sale_montage', label: 'Vente+Montage' },
+    ]},
+    { key: 'sort', label: 'Trier par', options: [
+      { value: 'recent', label: 'Récent' }, { value: 'oldest', label: 'Ancien' }, { value: 'amount_desc', label: 'Montant ↓' },
+    ]},
+  ];
 
   const load = useCallback(async () => {
     try { const res = await atelierAPI.getOrders(); setOrders(res.data || []); }
@@ -51,33 +68,37 @@ export function OrdersContent() {
     } },
   ]);
 
-  const filtered = orders.filter((o) => {
-    const matchSearch = o.orderNumber?.toLowerCase().includes(search.toLowerCase())
-      || `${o.client?.firstName || ''} ${o.client?.lastName || ''}`.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === 'all' || o.status === statusFilter;
-    return matchSearch && matchStatus;
-  });
+  const applyFilters = (list) => {
+    let r = list.filter((o) => {
+      const matchSearch = o.orderNumber?.toLowerCase().includes(search.toLowerCase())
+        || `${o.client?.firstName || ''} ${o.client?.lastName || ''}`.toLowerCase().includes(search.toLowerCase());
+      const matchStatus = filters.status === 'all' || o.status === filters.status;
+      const matchType = filters.type === 'all' || o.orderType === filters.type;
+      return matchSearch && matchStatus && matchType;
+    });
+    if (filters.sort === 'oldest') r.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    else if (filters.sort === 'amount_desc') r.sort((a, b) => (b.totalPrice || 0) - (a.totalPrice || 0));
+    else r.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return r;
+  };
+  const filtered = applyFilters(orders);
+  const filterActive = filters.status !== 'all' || filters.type !== 'all';
 
-  if (loading) return <Loader />;
+  if (loading) return <View style={{ flex: 1, backgroundColor: colors.bg }}><SkeletonList /></View>;
 
   return (
     <View style={styles.container}>
-      <SearchBar value={search} onChangeText={setSearch} placeholder="N° ou client..." />
-      <FlatList
-        horizontal showsHorizontalScrollIndicator={false}
-        data={['all', ...STATUSES]}
-        keyExtractor={(s) => s}
-        style={{ maxHeight: 44 }}
-        contentContainerStyle={{ paddingHorizontal: 12, gap: 8, alignItems: 'center' }}
-        renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => setStatusFilter(item)}
-            style={[styles.chip, statusFilter === item && { backgroundColor: colors.navy, borderColor: colors.navy }]}>
-            <Text style={[styles.chipText, statusFilter === item && { color: '#fff' }]}>
-              {item === 'all' ? 'Tous' : STATUS_LABEL[item]}
-            </Text>
-          </TouchableOpacity>
-        )}
-      />
+      <View style={styles.searchRow}>
+        <View style={{ flex: 1 }}>
+          <SearchBar value={search} onChangeText={setSearch} placeholder="N° ou client..." />
+        </View>
+        <TouchableOpacity style={[styles.iconBtn, { marginRight: 16 }]} onPress={() => setFilterOpen(true)}>
+          <Ionicons name="options-outline" size={20} color={colors.navy} />
+          {filterActive && <View style={styles.filterDot} />}
+        </TouchableOpacity>
+      </View>
+      <FilterSheet visible={filterOpen} onClose={() => setFilterOpen(false)} groups={filterGroups} value={filters}
+        onChange={(k, v) => setFilters((p) => ({ ...p, [k]: v }))} onReset={() => setFilters({ status: 'all', type: 'all', sort: 'recent' })} />
       <FlatList
         data={filtered}
         keyExtractor={(i) => i.id}
@@ -153,8 +174,9 @@ export function OrdersScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  chip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: radius.full, backgroundColor: '#fff', borderWidth: 1, borderColor: colors.border },
-  chipText: { fontSize: 12, fontWeight: '600', color: colors.muted },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  iconBtn: { width: 46, height: 46, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, ...shadow.card },
+  filterDot: { position: 'absolute', top: 6, right: 6, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.teal },
   card: { backgroundColor: '#fff', marginHorizontal: 16, marginVertical: 6, borderRadius: 16, overflow: 'hidden', borderWidth: 0.5, borderColor: colors.border, ...shadow.card },
   cardHead: { flexDirection: 'row', alignItems: 'center', padding: 16 },
   orderNum: { fontSize: 15, fontWeight: '700', color: colors.text },
