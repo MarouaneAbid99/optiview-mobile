@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, Modal, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { lensesAPI } from '../api/client';
 import { SearchBar, Fab, EmptyState, Field, PrimaryButton, ButtonRow } from '../components/ui';
 import { BarcodeScanner } from '../components/BarcodeScanner';
@@ -154,6 +155,7 @@ function LensModal({ visible, lens, prefillBarcode, onClose, onSaved }) {
     try {
       if (isEdit) await lensesAPI.updateLens(lens.id, payload);
       else await lensesAPI.createLens(payload);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       showSuccess(isEdit ? 'Verre mis à jour' : 'Verre créé');
       onSaved();
     } catch (e) { showError(e.response?.data?.message || 'Erreur'); }

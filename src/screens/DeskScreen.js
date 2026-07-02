@@ -1,5 +1,5 @@
 ﻿import { useState, useCallback } from "react";
-import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity } from "react-native";
+import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Alert } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -271,8 +271,6 @@ function StatCard({ icon, label, value, soft, fg, onPress }) {
     </Wrapper>
   );
 }
-
-import { Alert } from "react-native";
 
 const styles = StyleSheet.create({
   header: { backgroundColor: colors.navy, paddingHorizontal: 18, paddingBottom: 18, borderBottomLeftRadius: 22, borderBottomRightRadius: 22, flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", ...shadow.header },

@@ -6,7 +6,7 @@ import * as Haptics from "expo-haptics";
 import { atelierAPI } from "../api/client";
 import { Loader, EmptyState } from "../components/ui";
 import { useToast } from "../components/Toast";
-import { colors, radius, space, shadow, statusStyle } from "../theme";
+import { colors, radius, space, shadow } from "../theme";
 
 const FLOW = ["pending", "in-progress", "ready", "delivered"];
 const LABEL = { pending: "En attente", "in-progress": "En cours", ready: "Prêt", delivered: "Livré" };
