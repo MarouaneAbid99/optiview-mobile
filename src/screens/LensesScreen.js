@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, Modal, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, Image, FlatList, TouchableOpacity, StyleSheet, RefreshControl, Modal, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { lensesAPI } from '../api/client';
+import { uploadToCloudinary } from '../api/upload';
 import { SearchBar, Fab, EmptyState, Field, PrimaryButton, ButtonRow } from '../components/ui';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { useToast } from '../components/Toast';
@@ -92,6 +94,11 @@ export function LensesScreen() {
         ListEmptyComponent={<EmptyState icon="eye-outline" title="Aucun verre" text="Ajoutez votre premier verre en stock" actionLabel="Ajouter" onAction={() => { setEditing({}); setScanPrefill(null); setModal(true); }} />}
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.card} onPress={() => { setEditing(item); setScanPrefill(null); setModal(true); }}>
+            {item.imageUrl ? (
+              <Image source={{ uri: item.imageUrl }} style={styles.thumb} />
+            ) : (
+              <View style={styles.thumbChip}><Ionicons name="eye-outline" size={22} color={colors.navy} /></View>
+            )}
             <View style={{ flex: 1 }}>
               <Text style={styles.name}>{item.type} {item.material}</Text>
               <Text style={styles.sub}>{item.coating ? `${item.coating} · ` : ''}{item.price} MAD</Text>
@@ -120,18 +127,19 @@ export function LensesScreen() {
 
 function LensModal({ visible, lens, prefillBarcode, onClose, onSaved }) {
   const isEdit = !!lens;
-  const [form, setForm] = useState({ type: '', material: '', coating: '', treatment: '', price: '', stock: '', barcode: '' });
+  const [form, setForm] = useState({ type: '', material: '', coating: '', treatment: '', price: '', stock: '', barcode: '', imageUrl: '' });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
   const { showSuccess, showError } = useToast();
 
   useEffect(() => {
     if (!visible) return;
     if (lens) {
-      setForm({ type: lens.type || '', material: lens.material || '', coating: lens.coating || '', treatment: lens.treatment || '', price: String(lens.price ?? ''), stock: String(lens.stock ?? ''), barcode: lens.barcode || '' });
+      setForm({ type: lens.type || '', material: lens.material || '', coating: lens.coating || '', treatment: lens.treatment || '', price: String(lens.price ?? ''), stock: String(lens.stock ?? ''), barcode: lens.barcode || '', imageUrl: lens.imageUrl || '' });
     } else {
-      setForm({ type: '', material: '', coating: '', treatment: '', price: '', stock: '', barcode: prefillBarcode || '' });
+      setForm({ type: '', material: '', coating: '', treatment: '', price: '', stock: '', barcode: prefillBarcode || '', imageUrl: '' });
     }
     setErrors({});
   }, [visible, lens, prefillBarcode]);
@@ -139,6 +147,34 @@ function LensModal({ visible, lens, prefillBarcode, onClose, onSaved }) {
   const set = (k, v) => {
     setForm((p) => ({ ...p, [k]: v }));
     if (errors[k]) setErrors((p) => ({ ...p, [k]: null }));
+  };
+
+  const pickPhoto = async (fromCamera) => {
+    if (fromCamera) {
+      const p = await ImagePicker.requestCameraPermissionsAsync();
+      if (!p.granted) { alert('Autorisation caméra requise'); return; }
+    } else {
+      const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!p.granted) { alert('Autorisation galerie requise'); return; }
+    }
+    const picker = fromCamera ? ImagePicker.launchCameraAsync : ImagePicker.launchImageLibraryAsync;
+    const result = await picker({ quality: 0.7, allowsEditing: true });
+    if (result.canceled) return;
+    const uri = result.assets[0].uri;
+    setUploading(true);
+    try {
+      const url = await uploadToCloudinary(uri);
+      set('imageUrl', url);
+    } catch (e) { showError("Échec de l'envoi de la photo"); }
+    finally { setUploading(false); }
+  };
+
+  const choosePhotoSource = () => {
+    Alert.alert('Photo du verre', 'Choisir la source', [
+      { text: 'Caméra', onPress: () => pickPhoto(true) },
+      { text: 'Galerie', onPress: () => pickPhoto(false) },
+      { text: 'Annuler', style: 'cancel' },
+    ]);
   };
 
   const save = async () => {
@@ -151,6 +187,7 @@ function LensModal({ visible, lens, prefillBarcode, onClose, onSaved }) {
       type: form.type, material: form.material, coating: form.coating, treatment: form.treatment,
       price: parseFloat(form.price) || 0, stock: parseInt(form.stock, 10) || 0,
       barcode: form.barcode || undefined,
+      imageUrl: form.imageUrl || undefined,
     };
     try {
       if (isEdit) await lensesAPI.updateLens(lens.id, payload);
@@ -183,6 +220,27 @@ function LensModal({ visible, lens, prefillBarcode, onClose, onSaved }) {
               <TouchableOpacity onPress={onClose} style={m.closeBtn}><Ionicons name="close" size={20} color={colors.muted} /></TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={m.photoRow}>
+                <TouchableOpacity onPress={choosePhotoSource} disabled={uploading}>
+                  {form.imageUrl ? (
+                    <Image source={{ uri: form.imageUrl }} style={m.photoThumb} />
+                  ) : (
+                    <View style={m.photoPlaceholder}>
+                      {uploading ? <Text style={m.photoPlaceholderText}>...</Text> : <Ionicons name="camera-outline" size={26} color={colors.muted} />}
+                    </View>
+                  )}
+                </TouchableOpacity>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <TouchableOpacity onPress={choosePhotoSource} disabled={uploading}>
+                    <Text style={m.photoAction}>{form.imageUrl ? 'Changer la photo' : 'Ajouter une photo'}</Text>
+                  </TouchableOpacity>
+                  {!!form.imageUrl && (
+                    <TouchableOpacity onPress={() => set('imageUrl', '')} disabled={uploading}>
+                      <Text style={[m.photoAction, { color: colors.red, marginTop: 6 }]}>Retirer</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
               <Field label="Type *" value={form.type} onChangeText={(v) => set('type', v)} error={errors.type} />
               <Field label="Matériau *" value={form.material} onChangeText={(v) => set('material', v)} error={errors.material} />
               <Field label="Traitement" value={form.coating} onChangeText={(v) => set('coating', v)} />
@@ -225,6 +283,8 @@ const styles = StyleSheet.create({
   stockBox: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   stockBtn: { width: 30, height: 30, borderRadius: radius.sm, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
   stockNum: { fontSize: 15, fontWeight: '700', color: colors.text, minWidth: 24, textAlign: 'center' },
+  thumb: { width: 48, height: 48, borderRadius: radius.sm, marginRight: 12, backgroundColor: colors.bg },
+  thumbChip: { width: 48, height: 48, borderRadius: radius.sm, marginRight: 12, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
 });
 const m = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(11,27,58,0.5)', justifyContent: 'flex-end' },
@@ -235,4 +295,9 @@ const m = StyleSheet.create({
   closeBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
   barcodeRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
   scanIconBtn: { width: 46, height: 46, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.tealFaint, borderRadius: radius.md, marginBottom: 12 },
+  photoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  photoThumb: { width: 80, height: 80, borderRadius: radius.md, backgroundColor: colors.bg },
+  photoPlaceholder: { width: 80, height: 80, borderRadius: radius.md, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed' },
+  photoPlaceholderText: { fontSize: 12, color: colors.muted },
+  photoAction: { fontSize: 14, fontWeight: '600', color: colors.teal },
 });
