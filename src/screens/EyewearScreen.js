@@ -1,45 +1,48 @@
-import { useState, useEffect, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, Modal, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
-import { eyewearAPI } from '../api/client';
-import { SearchBar, Fab, EmptyState, Field, PrimaryButton, ButtonRow } from '../components/ui';
-import { BarcodeScanner } from '../components/BarcodeScanner';
-import { useToast } from '../components/Toast';
-import { SkeletonList } from '../components/Skeleton';
-import { FilterSheet } from '../components/FilterSheet';
-import { colors, radius, space, shadow } from '../theme';
+﻿import { useState, useEffect, useCallback } from "react";
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, Modal, ScrollView, KeyboardAvoidingView, Platform, Alert } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+import { eyewearAPI } from "../api/client";
+import { SearchBar, Fab, EmptyState, Field, PrimaryButton, ButtonRow } from "../components/ui";
+import { BarcodeScanner } from "../components/BarcodeScanner";
+import { useToast } from "../components/Toast";
+import { SkeletonList } from "../components/Skeleton";
+import { FilterSheet } from "../components/FilterSheet";
+import { colors, radius, space, shadow } from "../theme";
+
+const CATEGORIES = ["Homme", "Femme", "Enfant", "Mixte", "Solaire", "Sport"];
 
 export function EyewearScreen() {
   const [frames, setFrames] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [editing, setEditing] = useState(null);
   const [modal, setModal] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scanPrefill, setScanPrefill] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [filters, setFilters] = useState({ stock: 'all', sort: 'name' });
+  const [filters, setFilters] = useState({ stock: "all", sort: "name" });
 
   const filterGroups = [
-    { key: 'stock', label: 'Stock', options: [
-      { value: 'all', label: 'Tous' }, { value: 'low', label: 'Faible (≤2)' }, { value: 'in', label: 'En stock' }, { value: 'out', label: 'Rupture' },
+    { key: "stock", label: "Stock", options: [
+      { value: "all", label: "Tous" }, { value: "low", label: "Faible (≤2)" }, { value: "in", label: "En stock" }, { value: "out", label: "Rupture" },
     ]},
-    { key: 'sort', label: 'Trier par', options: [
-      { value: 'name', label: 'Nom' }, { value: 'price_asc', label: 'Prix ↑' }, { value: 'price_desc', label: 'Prix ↓' }, { value: 'stock_desc', label: 'Stock ↓' },
+    { key: "sort", label: "Trier par", options: [
+      { value: "name", label: "Nom" }, { value: "price_asc", label: "Prix ↑" }, { value: "price_desc", label: "Prix ↓" }, { value: "stock_desc", label: "Stock ↓" },
     ]},
   ];
 
   const applyFilters = (list) => {
     let r = [...list];
-    if (filters.stock === 'low') r = r.filter((f) => f.stock <= 2 && f.stock > 0);
-    else if (filters.stock === 'in') r = r.filter((f) => f.stock > 0);
-    else if (filters.stock === 'out') r = r.filter((f) => f.stock === 0);
-    if (filters.sort === 'name') r.sort((a, b) => `${a.brand}`.localeCompare(`${b.brand}`));
-    else if (filters.sort === 'price_asc') r.sort((a, b) => a.price - b.price);
-    else if (filters.sort === 'price_desc') r.sort((a, b) => b.price - a.price);
-    else if (filters.sort === 'stock_desc') r.sort((a, b) => b.stock - a.stock);
+    if (filters.stock === "low") r = r.filter((f) => f.stock <= 2 && f.stock > 0);
+    else if (filters.stock === "in") r = r.filter((f) => f.stock > 0);
+    else if (filters.stock === "out") r = r.filter((f) => f.stock === 0);
+    if (filters.sort === "name") r.sort((a, b) => (a.brand || "").localeCompare(b.brand || ""));
+    else if (filters.sort === "price_asc") r.sort((a, b) => a.price - b.price);
+    else if (filters.sort === "price_desc") r.sort((a, b) => b.price - a.price);
+    else if (filters.sort === "stock_desc") r.sort((a, b) => b.stock - a.stock);
     return r;
   };
 
@@ -62,8 +65,8 @@ export function EyewearScreen() {
     else { setEditing({}); setScanPrefill(code); setModal(true); }
   };
 
-  const filtered = applyFilters(frames.filter((f) => `${f.brand} ${f.model}`.toLowerCase().includes(search.toLowerCase())));
-  const filterActive = filters.stock !== 'all';
+  const filtered = applyFilters(frames.filter((f) => (f.brand + " " + f.model).toLowerCase().includes(search.toLowerCase())));
+  const filterActive = filters.stock !== "all";
 
   if (loading) return <View style={{ flex: 1, backgroundColor: colors.bg }}><SkeletonList /></View>;
 
@@ -82,7 +85,7 @@ export function EyewearScreen() {
         </TouchableOpacity>
       </View>
       <FilterSheet visible={filterOpen} onClose={() => setFilterOpen(false)} groups={filterGroups} value={filters}
-        onChange={(k, v) => setFilters((p) => ({ ...p, [k]: v }))} onReset={() => setFilters({ stock: 'all', sort: 'name' })} />
+        onChange={(k, v) => setFilters((p) => ({ ...p, [k]: v }))} onReset={() => setFilters({ stock: "all", sort: "name" })} />
       <FlatList
         data={filtered}
         keyExtractor={(i) => i.id}
@@ -93,7 +96,7 @@ export function EyewearScreen() {
           <TouchableOpacity style={styles.card} onPress={() => { setEditing(item); setScanPrefill(null); setModal(true); }}>
             <View style={{ flex: 1 }}>
               <Text style={styles.name}>{item.brand} {item.model}</Text>
-              <Text style={styles.sub}>{item.category}{item.color ? ` · ${item.color}` : ''} · {item.price} MAD</Text>
+              <Text style={styles.sub}>{item.category}{item.color ? " · " + item.color : ""} · {item.price ? item.price.toLocaleString("fr-FR") + " MAD" : "—"}</Text>
               {!!item.barcode && <Text style={styles.barcode}>{item.barcode}</Text>}
             </View>
             <View style={styles.stockBox}>
@@ -119,21 +122,21 @@ export function EyewearScreen() {
 
 function FrameModal({ visible, frame, prefillBarcode, onClose, onSaved }) {
   const isEdit = !!frame;
-  const [form, setForm] = useState({ brand: '', model: '', category: '', color: '', price: '', stock: '', barcode: '' });
+  const [form, setForm] = useState({ brand: "", model: "", category: "", color: "", price: "", stock: "", barcode: "" });
   const [saving, setSaving] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [errors, setErrors] = useState({});
+  const { showSuccess, showError } = useToast();
 
   useEffect(() => {
     if (!visible) return;
     if (frame) {
-      setForm({ brand: frame.brand || '', model: frame.model || '', category: frame.category || '', color: frame.color || '', price: String(frame.price ?? ''), stock: String(frame.stock ?? ''), barcode: frame.barcode || '' });
+      setForm({ brand: frame.brand || "", model: frame.model || "", category: frame.category || "", color: frame.color || "", price: String(frame.price ?? ""), stock: String(frame.stock ?? ""), barcode: frame.barcode || "" });
     } else {
-      setForm({ brand: '', model: '', category: '', color: '', price: '', stock: '', barcode: prefillBarcode || '' });
+      setForm({ brand: "", model: "", category: "", color: "", price: "", stock: "", barcode: prefillBarcode || "" });
     }
+    setErrors({});
   }, [visible, frame, prefillBarcode]);
-
-  const { showSuccess, showError } = useToast();
-  const [errors, setErrors] = useState({});
 
   const set = (k, v) => {
     setForm((p) => ({ ...p, [k]: v }));
@@ -142,9 +145,9 @@ function FrameModal({ visible, frame, prefillBarcode, onClose, onSaved }) {
 
   const save = async () => {
     const e = {};
-    if (!form.brand.trim()) e.brand = 'La marque est requise';
-    if (!form.model.trim()) e.model = 'Le modèle est requis';
-    if (!form.category.trim()) e.category = 'La catégorie est requise';
+    if (!form.brand.trim()) e.brand = "La marque est requise";
+    if (!form.model.trim()) e.model = "Le modèle est requis";
+    if (!form.category.trim()) e.category = "La catégorie est requise";
     if (Object.keys(e).length) { setErrors(e); return; }
     setSaving(true);
     const payload = {
@@ -155,83 +158,97 @@ function FrameModal({ visible, frame, prefillBarcode, onClose, onSaved }) {
     try {
       if (isEdit) await eyewearAPI.updateFrame(frame.id, payload);
       else await eyewearAPI.createFrame(payload);
-      showSuccess(isEdit ? 'Monture mise à jour' : 'Monture créée');
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      showSuccess(isEdit ? "Monture mise à jour" : "Monture créée");
       onSaved();
-    } catch (e) { showError(e.response?.data?.message || 'Erreur'); }
+    } catch (e) { showError(e.response?.data?.message || "Erreur"); }
     finally { setSaving(false); }
   };
 
   const remove = () => {
-    Alert.alert('Supprimer', 'Supprimer cette monture ?', [
-      { text: 'Annuler', style: 'cancel' },
-      { text: 'Supprimer', style: 'destructive', onPress: async () => {
-        try { await eyewearAPI.deleteFrame(frame.id); showSuccess('Monture supprimée'); onSaved(); }
-        catch (e) { showError(e.response?.data?.message || 'Erreur'); }
-      } },
+    Alert.alert("Supprimer", "Supprimer cette monture ?", [
+      { text: "Annuler", style: "cancel" },
+      { text: "Supprimer", style: "destructive", onPress: async () => {
+        try { await eyewearAPI.deleteFrame(frame.id); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); showSuccess("Monture supprimée"); onSaved(); }
+        catch (e) { showError(e.response?.data?.message || "Erreur"); }
+      }},
     ]);
   };
 
   return (
     <>
       <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={m.overlay}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={m.overlay}>
           <View style={m.sheet}>
             <View style={m.grabber} />
             <View style={m.header}>
-              <Text style={m.title}>{isEdit ? 'Modifier la monture' : 'Nouvelle monture'}</Text>
+              <Text style={m.title}>{isEdit ? "Modifier la monture" : "Nouvelle monture"}</Text>
               <TouchableOpacity onPress={onClose} style={m.closeBtn}><Ionicons name="close" size={20} color={colors.muted} /></TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Field label="Marque *" value={form.brand} onChangeText={(v) => set('brand', v)} error={errors.brand} />
-              <Field label="Modèle *" value={form.model} onChangeText={(v) => set('model', v)} error={errors.model} />
-              <Field label="Catégorie *" value={form.category} onChangeText={(v) => set('category', v)} error={errors.category} />
-              <Field label="Couleur" value={form.color} onChangeText={(v) => set('color', v)} />
-              <Field label="Prix (MAD)" value={form.price} onChangeText={(v) => set('price', v)} keyboardType="numeric" />
-              <Field label="Stock" value={form.stock} onChangeText={(v) => set('stock', v)} keyboardType="numeric" />
+              <Field label="Marque *" value={form.brand} onChangeText={(v) => set("brand", v)} error={errors.brand} />
+              <Field label="Modèle *" value={form.model} onChangeText={(v) => set("model", v)} error={errors.model} />
+
+              <Text style={m.catLabel}>Catégorie *</Text>
+              {!!errors.category && <Text style={m.catError}>{errors.category}</Text>}
+              <View style={m.catRow}>
+                {CATEGORIES.map((cat) => (
+                  <TouchableOpacity key={cat} style={[m.catChip, form.category === cat && m.catChipActive]} onPress={() => set("category", cat)}>
+                    <Text style={[m.catChipText, form.category === cat && m.catChipTextActive]}>{cat}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Field label="Couleur" value={form.color} onChangeText={(v) => set("color", v)} />
+              <Field label="Prix (MAD)" value={form.price} onChangeText={(v) => set("price", v)} keyboardType="numeric" />
+              <Field label="Stock" value={form.stock} onChangeText={(v) => set("stock", v)} keyboardType="numeric" />
               <View style={m.barcodeRow}>
                 <View style={{ flex: 1 }}>
-                  <Field label="Code-barres" value={form.barcode} onChangeText={(v) => set('barcode', v)} />
+                  <Field label="Code-barres" value={form.barcode} onChangeText={(v) => set("barcode", v)} />
                 </View>
                 <TouchableOpacity style={m.scanIconBtn} onPress={() => setScannerOpen(true)}>
                   <Ionicons name="barcode-outline" size={22} color={colors.teal} />
                 </TouchableOpacity>
               </View>
-              <ButtonRow
-                cancelLabel="Annuler" onCancel={onClose}
-                actionLabel={isEdit ? 'Enregistrer' : 'Créer'} onAction={save}
-                loading={saving} actionIcon={isEdit ? 'checkmark' : 'add'}
-              />
+              <ButtonRow cancelLabel="Annuler" onCancel={onClose} actionLabel={isEdit ? "Enregistrer" : "Créer"} onAction={save} loading={saving} actionIcon={isEdit ? "checkmark" : "add"} />
               {isEdit && <PrimaryButton title="Supprimer" onPress={remove} color={colors.red} icon="trash-outline" />}
               <View style={{ height: 24 }} />
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
       </Modal>
-      <BarcodeScanner visible={scannerOpen} onClose={() => setScannerOpen(false)} onScanned={(code) => { set('barcode', code); setScannerOpen(false); }} />
+      <BarcodeScanner visible={scannerOpen} onClose={() => setScannerOpen(false)} onScanned={(code) => { set("barcode", code); setScannerOpen(false); }} />
     </>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingRight: 8 },
-  iconBtn: { width: 46, height: 46, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, ...shadow.card },
-  filterDot: { position: 'absolute', top: 6, right: 6, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.teal },
-  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', marginHorizontal: 16, marginVertical: 6, padding: 16, borderRadius: 16, borderWidth: 0.5, borderColor: colors.border, ...shadow.card },
-  name: { fontSize: 15, fontWeight: '600', color: colors.text },
+  searchRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingRight: 8 },
+  iconBtn: { width: 46, height: 46, alignItems: "center", justifyContent: "center", backgroundColor: "#fff", borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, ...shadow.card },
+  filterDot: { position: "absolute", top: 6, right: 6, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.teal },
+  card: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", marginHorizontal: 16, marginVertical: 6, padding: 16, borderRadius: 16, borderWidth: 0.5, borderColor: colors.border, ...shadow.card },
+  name: { fontSize: 15, fontWeight: "600", color: colors.text },
   sub: { fontSize: 13, color: colors.muted, marginTop: 3 },
-  barcode: { fontSize: 11, color: colors.mutedLight, marginTop: 2, fontFamily: 'monospace' },
-  stockBox: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  stockBtn: { width: 30, height: 30, borderRadius: radius.sm, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
-  stockNum: { fontSize: 15, fontWeight: '700', color: colors.text, minWidth: 24, textAlign: 'center' },
+  barcode: { fontSize: 11, color: colors.mutedLight, marginTop: 2, fontFamily: "monospace" },
+  stockBox: { flexDirection: "row", alignItems: "center", gap: 6 },
+  stockBtn: { width: 30, height: 30, borderRadius: radius.sm, backgroundColor: colors.bg, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.border },
+  stockNum: { fontSize: 15, fontWeight: "700", color: colors.text, minWidth: 24, textAlign: "center" },
 });
 const m = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(11,27,58,0.5)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: '#fff', borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: space.lg, maxHeight: '90%', ...shadow.header },
-  grabber: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, alignSelf: 'center', marginBottom: 14 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  title: { fontSize: 17, fontWeight: '800', color: colors.text },
-  closeBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
-  barcodeRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
-  scanIconBtn: { width: 46, height: 46, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.tealFaint, borderRadius: radius.md, marginBottom: 12 },
+  overlay: { flex: 1, backgroundColor: "rgba(11,27,58,0.5)", justifyContent: "flex-end" },
+  sheet: { backgroundColor: "#fff", borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: space.lg, maxHeight: "90%", ...shadow.header },
+  grabber: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, alignSelf: "center", marginBottom: 14 },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
+  title: { fontSize: 17, fontWeight: "800", color: colors.text },
+  closeBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.bg, alignItems: "center", justifyContent: "center" },
+  catLabel: { fontSize: 12, fontWeight: "600", color: colors.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.4 },
+  catError: { fontSize: 12, color: colors.red, marginBottom: 4 },
+  catRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 14 },
+  catChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: radius.full, borderWidth: 1, borderColor: colors.border, backgroundColor: "#fff" },
+  catChipActive: { backgroundColor: colors.navy, borderColor: colors.navy },
+  catChipText: { fontSize: 13, color: colors.muted, fontWeight: "600" },
+  catChipTextActive: { color: "#fff" },
+  barcodeRow: { flexDirection: "row", alignItems: "flex-end", gap: 8 },
+  scanIconBtn: { width: 46, height: 46, alignItems: "center", justifyContent: "center", backgroundColor: colors.tealFaint, borderRadius: radius.md, marginBottom: 12 },
 });

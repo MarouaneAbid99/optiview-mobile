@@ -1,43 +1,51 @@
-import { useState, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, Linking, Alert } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
-import { atelierAPI } from '../api/client';
-import { SearchBar, Fab, EmptyState } from '../components/ui';
-import { useToast } from '../components/Toast';
-import { SkeletonList } from '../components/Skeleton';
-import { FilterSheet } from '../components/FilterSheet';
-import { colors, radius, space, shadow, statusStyle } from '../theme';
-import { OrderFormModal } from './orders/OrderFormModal';
+﻿import { useState, useCallback } from "react";
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, Linking, Alert } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
+import * as Haptics from "expo-haptics";
+import { atelierAPI } from "../api/client";
+import { SearchBar, Fab, EmptyState } from "../components/ui";
+import { useToast } from "../components/Toast";
+import { SkeletonList } from "../components/Skeleton";
+import { FilterSheet } from "../components/FilterSheet";
+import { colors, radius, space, shadow, statusStyle } from "../theme";
+import { OrderFormModal } from "./orders/OrderFormModal";
 
-const STATUSES = ['pending', 'in-progress', 'ready', 'delivered', 'cancelled'];
-const STATUS_LABEL = { pending: 'En attente', 'in-progress': 'En cours', ready: 'Prêt', delivered: 'Livré', cancelled: 'Annulé' };
+const STATUSES = ["pending", "in-progress", "ready", "delivered", "cancelled"];
+const STATUS_LABEL = { pending: "En attente", "in-progress": "En cours", ready: "Prêt", delivered: "Livré", cancelled: "Annulé" };
 const SS = statusStyle;
-const TYPE_LABEL = { sale: 'Vente', montage: 'Montage', sale_montage: 'Vente + Montage' };
+const TYPE_LABEL = { sale: "Vente", montage: "Montage", sale_montage: "Vente + Montage" };
+
+function fmtMAD(n) {
+  if (n == null) return "—";
+  return n.toLocaleString("fr-FR") + " MAD";
+}
 
 export function OrdersContent() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState(null);
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [filters, setFilters] = useState({ status: 'all', type: 'all', sort: 'recent' });
+  const [filters, setFilters] = useState({ status: "all", type: "all", sort: "recent" });
+  const [downloading, setDownloading] = useState(null);
   const { showError } = useToast();
 
   const filterGroups = [
-    { key: 'status', label: 'Statut', options: [
-      { value: 'all', label: 'Tous' }, { value: 'pending', label: 'En attente' }, { value: 'in-progress', label: 'En cours' },
-      { value: 'ready', label: 'Prêt' }, { value: 'delivered', label: 'Livré' }, { value: 'cancelled', label: 'Annulé' },
+    { key: "status", label: "Statut", options: [
+      { value: "all", label: "Tous" }, { value: "pending", label: "En attente" }, { value: "in-progress", label: "En cours" },
+      { value: "ready", label: "Prêt" }, { value: "delivered", label: "Livré" }, { value: "cancelled", label: "Annulé" },
     ]},
-    { key: 'type', label: 'Type', options: [
-      { value: 'all', label: 'Tous' }, { value: 'sale', label: 'Vente' }, { value: 'montage', label: 'Montage' }, { value: 'sale_montage', label: 'Vente+Montage' },
+    { key: "type", label: "Type", options: [
+      { value: "all", label: "Tous" }, { value: "sale", label: "Vente" }, { value: "montage", label: "Montage" }, { value: "sale_montage", label: "Vente+Montage" },
     ]},
-    { key: 'sort', label: 'Trier par', options: [
-      { value: 'recent', label: 'Récent' }, { value: 'oldest', label: 'Ancien' }, { value: 'amount_desc', label: 'Montant ↓' },
+    { key: "sort", label: "Trier par", options: [
+      { value: "recent", label: "Récent" }, { value: "oldest", label: "Ancien" }, { value: "amount_desc", label: "Montant" },
     ]},
   ];
 
@@ -48,41 +56,62 @@ export function OrdersContent() {
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const changeStatus = async (order, status) => {
-    try { await atelierAPI.updateStatus(order.id, status); load(); }
-    catch (e) { showError(e.response?.data?.message || 'Erreur'); }
+    try {
+      await atelierAPI.updateStatus(order.id, status);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      load();
+    } catch (e) { showError(e.response?.data?.message || "Erreur"); }
   };
 
   const whatsapp = (order) => {
     if (!order.client?.phone) return;
-    let d = order.client.phone.replace(/\D/g, '');
-    if (d.startsWith('0')) d = '212' + d.slice(1);
-    const msg = `Bonjour ${order.client.firstName}, votre commande ${order.orderNumber} est prête.`;
-    Linking.openURL(`https://wa.me/${d}?text=${encodeURIComponent(msg)}`);
+    let d = order.client.phone.replace(/\D/g, "");
+    if (d.startsWith("0")) d = "212" + d.slice(1);
+    const msg = "Bonjour " + order.client.firstName + ", votre commande " + order.orderNumber + " est prête.";
+    Linking.openURL("https://wa.me/" + d + "?text=" + encodeURIComponent(msg));
   };
 
-  const remove = (order) => Alert.alert('Supprimer', `Supprimer ${order.orderNumber} ?`, [
-    { text: 'Annuler', style: 'cancel' },
-    { text: 'Supprimer', style: 'destructive', onPress: async () => {
-      try { await atelierAPI.deleteOrder(order.id); load(); }
-      catch { showError('Erreur lors de la suppression'); }
-    } },
+  const downloadInvoice = async (order) => {
+    setDownloading(order.id);
+    try {
+      const res = await atelierAPI.getInvoice(order.id);
+      const bytes = new Uint8Array(res.data);
+      let binary = "";
+      for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+      const base64 = btoa(binary);
+      const path = FileSystem.cacheDirectory + "facture-" + order.orderNumber + ".pdf";
+      await FileSystem.writeAsStringAsync(path, base64, { encoding: FileSystem.EncodingType.Base64 });
+      await Sharing.shareAsync(path, { mimeType: "application/pdf", dialogTitle: "Facture " + order.orderNumber });
+    } catch (e) {
+      showError("Impossible de télécharger la facture");
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  const remove = (order) => Alert.alert("Supprimer", "Supprimer " + order.orderNumber + " ?", [
+    { text: "Annuler", style: "cancel" },
+    { text: "Supprimer", style: "destructive", onPress: async () => {
+      try { await atelierAPI.deleteOrder(order.id); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); load(); }
+      catch { showError("Erreur lors de la suppression"); }
+    }},
   ]);
 
   const applyFilters = (list) => {
     let r = list.filter((o) => {
       const matchSearch = o.orderNumber?.toLowerCase().includes(search.toLowerCase())
-        || `${o.client?.firstName || ''} ${o.client?.lastName || ''}`.toLowerCase().includes(search.toLowerCase());
-      const matchStatus = filters.status === 'all' || o.status === filters.status;
-      const matchType = filters.type === 'all' || o.orderType === filters.type;
+        || (o.client?.firstName + " " + o.client?.lastName || "").toLowerCase().includes(search.toLowerCase());
+      const matchStatus = filters.status === "all" || o.status === filters.status;
+      const matchType = filters.type === "all" || o.orderType === filters.type;
       return matchSearch && matchStatus && matchType;
     });
-    if (filters.sort === 'oldest') r.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-    else if (filters.sort === 'amount_desc') r.sort((a, b) => (b.totalPrice || 0) - (a.totalPrice || 0));
+    if (filters.sort === "oldest") r.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    else if (filters.sort === "amount_desc") r.sort((a, b) => (b.totalPrice || 0) - (a.totalPrice || 0));
     else r.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     return r;
   };
   const filtered = applyFilters(orders);
-  const filterActive = filters.status !== 'all' || filters.type !== 'all';
+  const filterActive = filters.status !== "all" || filters.type !== "all";
 
   if (loading) return <View style={{ flex: 1, backgroundColor: colors.bg }}><SkeletonList /></View>;
 
@@ -98,7 +127,7 @@ export function OrdersContent() {
         </TouchableOpacity>
       </View>
       <FilterSheet visible={filterOpen} onClose={() => setFilterOpen(false)} groups={filterGroups} value={filters}
-        onChange={(k, v) => setFilters((p) => ({ ...p, [k]: v }))} onReset={() => setFilters({ status: 'all', type: 'all', sort: 'recent' })} />
+        onChange={(k, v) => setFilters((p) => ({ ...p, [k]: v }))} onReset={() => setFilters({ status: "all", type: "all", sort: "recent" })} />
       <FlatList
         data={filtered}
         keyExtractor={(i) => i.id}
@@ -112,10 +141,10 @@ export function OrdersContent() {
               <TouchableOpacity style={styles.cardHead} onPress={() => setExpanded(open ? null : item.id)}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.orderNum}>{item.orderNumber}</Text>
-                  <Text style={styles.sub}>{item.client ? `${item.client.firstName} ${item.client.lastName}` : 'Passage'} · {TYPE_LABEL[item.orderType] || item.orderType}</Text>
+                  <Text style={styles.sub}>{item.client ? item.client.firstName + " " + item.client.lastName : "Passage"} · {TYPE_LABEL[item.orderType] || item.orderType}</Text>
                 </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={styles.price}>{item.totalPrice} MAD</Text>
+                <View style={{ alignItems: "flex-end" }}>
+                  <Text style={styles.price}>{fmtMAD(item.totalPrice)}</Text>
                   <View style={[styles.badge, { backgroundColor: (SS[item.status] || SS.pending).bg }]}>
                     <Text style={[styles.badgeText, { color: (SS[item.status] || SS.pending).text }]}>{STATUS_LABEL[item.status]}</Text>
                   </View>
@@ -125,8 +154,10 @@ export function OrdersContent() {
               {open && (
                 <View style={styles.detail}>
                   {item.frame && <Text style={styles.line}>Monture: {item.frame.brand} {item.frame.model}</Text>}
-                  {(item.items || []).map((it) => <Text key={it.id} style={styles.line}>Verre: {it.lens?.type} {it.lens?.material} ×{it.quantity}</Text>)}
-                  {!!item.laborPrice && <Text style={styles.line}>Montage: {item.laborPrice} MAD</Text>}
+                  {(item.items || []).map((it) => <Text key={it.id} style={styles.line}>Verre: {it.lens?.type} {it.lens?.material} x{it.quantity}</Text>)}
+                  {!!item.laborPrice && <Text style={styles.line}>Montage: {fmtMAD(item.laborPrice)}</Text>}
+                  {!!item.notes && <Text style={styles.line}>Notes: {item.notes}</Text>}
+                  {!!item.deliveryDate && <Text style={styles.line}>Livraison: {new Date(item.deliveryDate).toLocaleDateString("fr-FR")}</Text>}
 
                   <Text style={styles.detailLabel}>Statut</Text>
                   <View style={styles.statusRow}>
@@ -147,12 +178,16 @@ export function OrdersContent() {
                     <TouchableOpacity style={[styles.actBtn, { borderColor: colors.border }]} onPress={() => { setEditing(item); setModal(true); }}>
                       <Ionicons name="pencil" size={14} color={colors.text} /><Text style={styles.actText}>Modifier</Text>
                     </TouchableOpacity>
+                    <TouchableOpacity style={[styles.actBtn, { borderColor: colors.teal }]} onPress={() => downloadInvoice(item)} disabled={downloading === item.id}>
+                      <Ionicons name="document-text-outline" size={14} color={colors.teal} />
+                      <Text style={[styles.actText, { color: colors.teal }]}>{downloading === item.id ? "..." : "Facture"}</Text>
+                    </TouchableOpacity>
                     {!!item.client?.phone && (
-                      <TouchableOpacity style={[styles.actBtn, { backgroundColor: '#25D366', borderColor: '#25D366' }]} onPress={() => whatsapp(item)}>
-                        <Ionicons name="logo-whatsapp" size={14} color="#fff" /><Text style={[styles.actText, { color: '#fff' }]}>WhatsApp</Text>
+                      <TouchableOpacity style={[styles.actBtn, { backgroundColor: "#25D366", borderColor: "#25D366" }]} onPress={() => whatsapp(item)}>
+                        <Ionicons name="logo-whatsapp" size={14} color="#fff" /><Text style={[styles.actText, { color: "#fff" }]}>WhatsApp</Text>
                       </TouchableOpacity>
                     )}
-                    <TouchableOpacity style={[styles.actBtn, { borderColor: '#fecaca' }]} onPress={() => remove(item)}>
+                    <TouchableOpacity style={[styles.actBtn, { borderColor: "#fecaca" }]} onPress={() => remove(item)}>
                       <Ionicons name="trash" size={14} color={colors.red} /><Text style={[styles.actText, { color: colors.red }]}>Suppr.</Text>
                     </TouchableOpacity>
                   </View>
@@ -174,24 +209,24 @@ export function OrdersScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  iconBtn: { width: 46, height: 46, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, ...shadow.card },
-  filterDot: { position: 'absolute', top: 6, right: 6, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.teal },
-  card: { backgroundColor: '#fff', marginHorizontal: 16, marginVertical: 6, borderRadius: 16, overflow: 'hidden', borderWidth: 0.5, borderColor: colors.border, ...shadow.card },
-  cardHead: { flexDirection: 'row', alignItems: 'center', padding: 16 },
-  orderNum: { fontSize: 15, fontWeight: '700', color: colors.text },
+  searchRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  iconBtn: { width: 46, height: 46, alignItems: "center", justifyContent: "center", backgroundColor: "#fff", borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, ...shadow.card },
+  filterDot: { position: "absolute", top: 6, right: 6, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.teal },
+  card: { backgroundColor: "#fff", marginHorizontal: 16, marginVertical: 6, borderRadius: 16, overflow: "hidden", borderWidth: 0.5, borderColor: colors.border, ...shadow.card },
+  cardHead: { flexDirection: "row", alignItems: "center", padding: 16 },
+  orderNum: { fontSize: 15, fontWeight: "700", color: colors.text },
   sub: { fontSize: 13, color: colors.muted, marginTop: 3 },
-  price: { fontSize: 15, fontWeight: '700', color: colors.text },
+  price: { fontSize: 15, fontWeight: "700", color: colors.text },
   badge: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: radius.full, marginTop: 4 },
-  badgeText: { fontSize: 11, fontWeight: '700' },
+  badgeText: { fontSize: 11, fontWeight: "700" },
   detail: { padding: 16, borderTopWidth: 1, borderTopColor: colors.bg, gap: 4 },
   line: { color: colors.text, fontSize: 14 },
-  detailLabel: { fontSize: 11, fontWeight: '600', color: colors.muted, marginTop: 8, textTransform: 'uppercase', letterSpacing: 0.4 },
-  statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
-  statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: radius.full, borderWidth: 1 },
+  detailLabel: { fontSize: 11, fontWeight: "600", color: colors.muted, marginTop: 8, textTransform: "uppercase", letterSpacing: 0.4 },
+  statusRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 6 },
+  statusPill: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: radius.full, borderWidth: 1 },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusPillText: { fontSize: 11, fontWeight: '600' },
-  actions: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  actBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 8, borderRadius: radius.sm, borderWidth: 1 },
-  actText: { fontSize: 12, color: colors.text, fontWeight: '600' },
+  statusPillText: { fontSize: 11, fontWeight: "600" },
+  actions: { flexDirection: "row", gap: 8, marginTop: 12, flexWrap: "wrap" },
+  actBtn: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 8, borderRadius: radius.sm, borderWidth: 1 },
+  actText: { fontSize: 12, color: colors.text, fontWeight: "600" },
 });

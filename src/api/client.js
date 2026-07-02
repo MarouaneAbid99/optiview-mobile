@@ -37,11 +37,12 @@ client.interceptors.response.use(
   },
 );
 
-// ===== API groups (same endpoints as the web app) =====
 export const authAPI = {
   login: (data) => client.post('/auth/login', data),
   register: (data) => client.post('/auth/register', data),
   me: () => client.get('/auth/me'),
+  forgotPassword: (email) => client.post('/auth/forgot-password', { email }),
+  resetPassword: (data) => client.post('/auth/reset-password', data),
 };
 
 export const panoramaAPI = {
@@ -57,7 +58,12 @@ export const clientsAPI = {
   deleteClient: (id) => client.delete(`/clients/${id}`),
   getStats: () => client.get('/clients/stats'),
   createPrescription: (clientId, data) => client.post(`/clients/${clientId}/prescriptions`, data),
+  deletePrescription: (id) => client.delete(`/clients/prescriptions/${id}`),
   upcomingAppointments: () => client.get('/clients/appointments/upcoming'),
+  getAppointments: (clientId) => client.get(`/clients/${clientId}/appointments`),
+  createAppointment: (clientId, data) => client.post(`/clients/${clientId}/appointments`, data),
+  updateAppointmentStatus: (clientId, apptId, status) => client.put(`/clients/${clientId}/appointments/${apptId}`, { status }),
+  deleteAppointment: (clientId, apptId) => client.delete(`/clients/${clientId}/appointments/${apptId}`),
 };
 
 export const eyewearAPI = {
@@ -86,6 +92,7 @@ export const atelierAPI = {
   updateOrder: (id, data) => client.put(`/atelier/orders/${id}`, data),
   updateStatus: (id, status) => client.put(`/atelier/orders/${id}/status`, { status }),
   deleteOrder: (id) => client.delete(`/atelier/orders/${id}`),
+  getInvoice: (id) => client.get(`/atelier/orders/${id}/invoice`, { responseType: 'arraybuffer' }),
 };
 
 export const usersAPI = {
@@ -93,6 +100,8 @@ export const usersAPI = {
   updateMyShop: (data) => client.patch('/users/my-shop', data),
   listEmployees: () => client.get('/users/employees'),
   createEmployee: (data) => client.post('/users/employees', data),
+  setEmployeeActive: (id, active) => client.patch(`/users/employees/${id}/active`, { active }),
+  deleteEmployee: (id) => client.delete(`/users/employees/${id}`),
 };
 
 export default client;

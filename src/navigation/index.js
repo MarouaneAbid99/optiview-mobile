@@ -1,23 +1,23 @@
-import { useState, useEffect } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { ActivityIndicator, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth } from '../context/AuthContext';
-import { colors } from '../theme';
-import { OnboardingScreen } from '../screens/OnboardingScreen';
+﻿import { useState, useEffect } from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { ActivityIndicator, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAuth } from "../context/AuthContext";
+import { colors } from "../theme";
+import { OnboardingScreen } from "../screens/OnboardingScreen";
 
-import { LoginScreen } from '../screens/LoginScreen';
-import { SignupScreen } from '../screens/SignupScreen';
-import { PanoramaScreen } from '../screens/PanoramaScreen';
-import { ClientsListScreen } from '../screens/clients/ClientsListScreen';
-import { ClientDetailScreen } from '../screens/clients/ClientDetailScreen';
-import { EyewearScreen } from '../screens/EyewearScreen';
-import { LensesScreen } from '../screens/LensesScreen';
-import { AtelierScreen } from '../screens/AtelierScreen';
-import { DeskScreen } from '../screens/DeskScreen';
+import { LoginScreen } from "../screens/LoginScreen";
+import { SignupScreen } from "../screens/SignupScreen";
+import { PanoramaScreen } from "../screens/PanoramaScreen";
+import { ClientsListScreen } from "../screens/clients/ClientsListScreen";
+import { ClientDetailScreen } from "../screens/clients/ClientDetailScreen";
+import { EyewearScreen } from "../screens/EyewearScreen";
+import { LensesScreen } from "../screens/LensesScreen";
+import { AtelierScreen } from "../screens/AtelierScreen";
+import { DeskScreen } from "../screens/DeskScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -28,23 +28,23 @@ function ClientsStack() {
     <ClientsStackNav.Navigator
       screenOptions={{
         headerStyle: { backgroundColor: colors.navy },
-        headerTintColor: '#fff',
-        headerTitleStyle: { fontWeight: '700' },
+        headerTintColor: "#fff",
+        headerTitleStyle: { fontWeight: "700" },
       }}
     >
-      <ClientsStackNav.Screen name="ClientsList" component={ClientsListScreen} options={{ title: 'Clients' }} />
-      <ClientsStackNav.Screen name="ClientDetail" component={ClientDetailScreen} options={{ title: 'Fiche client' }} />
+      <ClientsStackNav.Screen name="ClientsList" component={ClientsListScreen} options={{ title: "Clients" }} />
+      <ClientsStackNav.Screen name="ClientDetail" component={ClientDetailScreen} options={{ title: "Fiche client" }} />
     </ClientsStackNav.Navigator>
   );
 }
 
 const ICONS = {
-  Boutique: 'home',
-  Desk:     'grid',
-  Clients:  'people',
-  Eyewear:  'glasses',
-  Lenses:   'eye',
-  Atelier:  'construct',
+  Boutique: { outline: "home-outline", filled: "home" },
+  Desk:     { outline: "grid-outline", filled: "grid" },
+  Clients:  { outline: "people-outline", filled: "people" },
+  Eyewear:  { outline: "glasses-outline", filled: "glasses" },
+  Lenses:   { outline: "eye-outline", filled: "eye" },
+  Atelier:  { outline: "construct-outline", filled: "construct" },
 };
 
 function MainTabs() {
@@ -52,13 +52,16 @@ function MainTabs() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerStyle: { backgroundColor: colors.navy },
-        headerTintColor: '#fff',
-        headerTitleStyle: { fontWeight: '700' },
+        headerTintColor: "#fff",
+        headerTitleStyle: { fontWeight: "700" },
         tabBarStyle: { backgroundColor: colors.navy, borderTopWidth: 0, elevation: 10 },
         tabBarActiveTintColor: colors.teal,
-        tabBarInactiveTintColor: 'rgba(255,255,255,0.4)',
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
-        tabBarIcon: ({ color, size }) => <Ionicons name={ICONS[route.name]} size={size} color={color} />,
+        tabBarInactiveTintColor: "rgba(255,255,255,0.4)",
+        tabBarLabelStyle: { fontSize: 10, fontWeight: "600" },
+        tabBarIcon: ({ color, size, focused }) => {
+          const icon = focused ? ICONS[route.name]?.filled : ICONS[route.name]?.outline;
+          return <Ionicons name={icon || "ellipse"} size={size} color={color} />;
+        },
       })}
     >
       <Tab.Screen name="Boutique" component={PanoramaScreen} options={{ headerShown: false }} />
@@ -76,11 +79,11 @@ export function RootNavigator() {
   const [onboarded, setOnboarded] = useState(null);
 
   useEffect(() => {
-    AsyncStorage.getItem('optiview_onboarded').then((v) => setOnboarded(v === '1'));
+    AsyncStorage.getItem("optiview_onboarded").then((v) => setOnboarded(v === "1"));
   }, []);
 
   if (loading || onboarded === null) {
-    return <View style={{ flex: 1, justifyContent: 'center', backgroundColor: colors.navy }}><ActivityIndicator size="large" color={colors.teal} /></View>;
+    return <View style={{ flex: 1, justifyContent: "center", backgroundColor: colors.navy }}><ActivityIndicator size="large" color={colors.teal} /></View>;
   }
 
   if (!onboarded && !user) {
